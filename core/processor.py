@@ -77,38 +77,47 @@ class BrainFogProcessor:
     def clean_my_brain(self, user_input, reference_task=None, image_data=None):
         prompt = self._build_system_prompt(reference_task)
         
-        if self.driver == "gemini":
-            content = [prompt, user_input]
-            if image_data:
-                content.append(image_data)
+        try:
+            if self.driver == "gemini":
+                content = [prompt, user_input]
+                if image_data:
+                    content.append(image_data)
 
-            response = self.model.generate_content(content)
-            return response.text.strip()
+                response = self.model.generate_content(content)
+                return response.text.strip()
 
-        else:
-            if image_data:
-                image_url = self._normalize_openai_image(image_data)
-                user_content = [
-                    {"type": "text", "text": user_input},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": image_url
-                        }
-                    }
-                ]
             else:
-                user_content = user_input
+                if image_data:
+                    image_url = self._normalize_openai_image(image_data)
+                    user_content = [
+                        {"type": "text", "text": user_input},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": image_url
+                            }
+                        }
+                    ]
+                else:
+                    user_content = user_input
 
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=[
-                    {"role": "system", "content": prompt},
-                    {"role": "user", "content": user_content}
-                ],
-                temperature=0
-            )
-            return response.choices[0].message.content.strip()
+                response = self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": prompt},
+                        {"role": "user", "content": user_content}
+                    ],
+                    temperature=0
+                )
+                return response.choices[0].message.content.strip()
+                
+        except Exception as e:
+            error_msg = f"AI API Error in clean_my_brain: {str(e)}"
+            print(f"❌ {error_msg}")
+            
+            # Return a safe fallback response
+            fallback_task = f"| [ ] | P2 | {user_input[:100]} | Life | | | AI processing failed |"
+            return fallback_task
             
     def analyze_todo(self, todo_text, mode="prior", target_task=None):
         now = datetime.datetime.now()
@@ -206,17 +215,32 @@ class BrainFogProcessor:
         if target_task:
             user_content += f"\n\nTarget task:\n{target_task}"
 
-        if self.driver == "gemini":
-            response = self.model.generate_content([prompt, user_content])
-            return response.text.strip()
+        try:
+            if self.driver == "gemini":
+                response = self.model.generate_content([prompt, user_content])
+                return response.text.strip()
 
-        else:
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=[
-                    {"role": "system", "content": prompt},
-                    {"role": "user", "content": user_content}
-                ],
-                temperature=0.4
-            )
-            return response.choices[0].message.content.strip()
+            else:
+                response = self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": prompt},
+                        {"role": "user", "content": user_content}
+                    ],
+                    temperature=0.4
+                )
+                return response.choices[0].message.content.strip()
+                
+        except Exception as e:
+            error_msg = f"AI API Error in analyze_todo (mode: {mode}): {str(e)}"
+            print(f"❌ {error_msg}")
+            
+            # Return a safe fallback response based on mode
+            fallback_responses = {
+                "prior": "❌ AI analysis failed. Please check your internet connection and try again.",
+                "cbt": "❌ Task breakdown failed. Please try again later.",
+                "cbt_all": "❌ Global planning failed. Please try again later.",
+                "yesucan": "❌ Motivation analysis failed. You can do this! Please try again later."
+            }
+            
+            return fallback_responses.get(mode, "❌ AI analysis failed. Please try again later.")
