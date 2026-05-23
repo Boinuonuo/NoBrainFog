@@ -156,7 +156,12 @@ class WeChatWorkBot:
         return self.ingest.handler.format_report()
     except Exception as e:
         return f"❌ 获取任务失败: {str(e)}"
-        
+        elif cmd in ['/undo']:
+    try:
+        ok, reply = self.ingest.handler.undo_last()
+        return reply
+    except Exception as e:
+        return f"❌ 撤回失败: {str(e)}"
         elif cmd in ['/export', '/exp', '/e']:
     try:
         content = self.ingest.handler.get_todo_text()
