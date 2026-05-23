@@ -146,6 +146,11 @@ class NoBrainFogBot(discord.Client):
             await message.channel.send(report)
             return
 
+        if command in ["/undo"]:
+            ok, reply = self.handler.undo_last()
+            await message.channel.send(reply)
+            return
+        
         if command.startswith("/done"):
             selector = raw_command[len("/done"):].strip()
 
