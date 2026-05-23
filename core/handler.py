@@ -364,28 +364,28 @@ class TodoHandler:
             return False, f"Failed to write file: {e}"
     
     def undo_last(self):
-    """
-    Removes the last task row from todo.md.
-    """
-    self._initialize_storage()
+        """
+        Removes the last task row from todo.md.
+        """
+        self._initialize_storage()
 
-    with open(self.file_path, "r", encoding="utf-8") as f:
-        lines = f.readlines()
+        with open(self.file_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
 
-    last_task_index = None
+        last_task_index = None
 
-    for i in range(len(lines) - 1, -1, -1):
-        if lines[i].strip().startswith("| ["):
-            last_task_index = i
-            break
+        for i in range(len(lines) - 1, -1, -1):
+            if lines[i].strip().startswith("| ["):
+                last_task_index = i
+                break
 
-    if last_task_index is None:
-        return False, "没有可以撤回的任务。"
+        if last_task_index is None:
+            return False, "没有可以撤回的任务。"
 
-    removed_line = lines[last_task_index].strip()
-    del lines[last_task_index]
+        removed_line = lines[last_task_index].strip()
+        del lines[last_task_index]
 
-    with open(self.file_path, "w", encoding="utf-8") as f:
-        f.writelines(lines)
+        with open(self.file_path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
 
-    return True, f"↩️ 已撤回最后一条任务：\n{removed_line}"
+        return True, f"↩️ 已撤回最后一条任务：\n{removed_line}"
