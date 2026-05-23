@@ -152,25 +152,10 @@ class WeChatWorkBot:
         cmd = command.lower()
         
         if cmd in ['/report', '/rep', '/r']:
-            try:
-                tasks = self.ingest.handler.get_all_tasks()
-                if not tasks:
-                    return "📝 当前没有任务"
-                
-                response = "📋 **当前任务列表**\n\n"
-                for i, task in enumerate(tasks, 1):
-                    status = "✅" if task.get('status') == '[x]' else "⏳"
-                    priority = task.get('priority', 'P2')
-                    task_desc = task.get('task', '未知任务')
-                    category = task.get('category', '未分类')
-                    deadline = task.get('deadline', '无')
-                    
-                    response += f"{i}. {status} **{task_desc}**\n"
-                    response += f"   📊 优先级: {priority} | 📁 类别: {category} | ⏰ 截止: {deadline}\n\n"
-                
-                return response
-            except Exception as e:
-                return f"❌ 获取任务失败: {str(e)}"
+    try:
+        return self.ingest.handler.format_report()
+    except Exception as e:
+        return f"❌ 获取任务失败: {str(e)}"
         
         elif cmd in ['/export', '/exp', '/e']:
             try:
