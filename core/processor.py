@@ -2,10 +2,13 @@ import datetime
 import os
 import base64
 import openai
+
 try:
-    import google.generativeai as genai
+    from google import genai
+    from google.genai import types as genai_types
 except ImportError:
     genai = None
+    genai_types = None
 
 class BrainFogProcessor:
     def __init__(self, config):
@@ -13,8 +16,18 @@ class BrainFogProcessor:
         self.categories = config.get("CATEGORIES")
         
         if self.driver == "gemini":
-            genai.configure(api_key=config.get("GEMINI_API_KEY"))
-            self.model = genai.GenerativeModel(config.get("GEMINI_MODEL", "gemini-1.5-flash"))
+            if genai is None:
+                raise ImportError(
+                    "AI_DRIVER is set to gemini, but google-genai is not installed. "
+                    "Run: pip install google-genai"
+                )
+
+            gemini_api_key = config.get("GEMINI_API_KEY")
+            if not gemini_api_key:
+                raise ValueError("GEMINI_API_KEY is missing while AI_DRIVER=gemini.")
+
+            self.gemini_client = genai.Client(api_key=gemini_api_key)
+            self.gemini_model = config.get("GEMINI_MODEL", "gemini-2.5-flash")
         else:
             self.client = openai.OpenAI(
                 api_key=config.get("API_KEY"),
@@ -73,18 +86,66 @@ class BrainFogProcessor:
             return f"data:image/png;base64,{encoded}"
 
         return image_data
+
+    def _normalize_gemini_image(self, image_data):
+        if not image_data:
+            return None
+
+        if genai_types is None:
+            raise ImportError("google-genai is not installed.")
+
+        if isinstance(image_data, dict):
+            mime_type = image_data.get("mime_type", "image/png")
+            data = image_data.get("data")
+
+            if isinstance(data, str):
+                if data.startswith("data:"):
+                    header, encoded = data.split(",", 1)
+                    mime_type = header.split(";")[0].replace("data:", "") or mime_type
+                    data = base64.b64decode(encoded)
+                else:
+                    data = base64.b64decode(data)
+
+            if isinstance(data, bytes):
+                return genai_types.Part.from_bytes(data=data, mime_type=mime_type)
+
+        if isinstance(image_data, bytes):
+            return genai_types.Part.from_bytes(data=image_data, mime_type="image/png")
+
+        return image_data
+
+    def _gemini_generate(self, prompt, user_input, image_data=None, temperature=0):
+        if genai_types is None:
+            raise ImportError("google-genai is not installed.")
+
+        contents = [user_input]
+
+        gemini_image = self._normalize_gemini_image(image_data)
+        if gemini_image:
+            contents.append(gemini_image)
+
+        response = self.gemini_client.models.generate_content(
+            model=self.gemini_model,
+            contents=contents,
+            config=genai_types.GenerateContentConfig(
+                system_instruction=prompt,
+                temperature=temperature,
+            ),
+        )
+
+        return response.text.strip()
         
     def clean_my_brain(self, user_input, reference_task=None, image_data=None):
         prompt = self._build_system_prompt(reference_task)
         
         try:
             if self.driver == "gemini":
-                content = [prompt, user_input]
-                if image_data:
-                    content.append(image_data)
-
-                response = self.model.generate_content(content)
-                return response.text.strip()
+                return self._gemini_generate(
+                    prompt=prompt,
+                    user_input=user_input,
+                    image_data=image_data,
+                    temperature=0,
+                )
 
             else:
                 if image_data:
@@ -217,8 +278,12 @@ class BrainFogProcessor:
 
         try:
             if self.driver == "gemini":
-                response = self.model.generate_content([prompt, user_content])
-                return response.text.strip()
+                return self._gemini_generate(
+                    prompt=prompt,
+                    user_input=user_content,
+                    image_data=None,
+                    temperature=0.4,
+                )
 
             else:
                 response = self.client.chat.completions.create(
