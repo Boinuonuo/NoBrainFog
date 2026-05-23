@@ -158,13 +158,13 @@ class WeChatWorkBot:
         return f"❌ 获取任务失败: {str(e)}"
         
         elif cmd in ['/export', '/exp', '/e']:
-            try:
-                content = self.ingest.handler.export_content()
-                if len(content) > 2000:
-                    return "📄 任务内容过长，请通过文件获取"
-                return f"📄 **任务导出**\n\n```markdown\n{content}\n```"
-            except Exception as e:
-                return f"❌ 导出失败: {str(e)}"
+    try:
+        content = self.ingest.handler.get_todo_text()
+        if len(content) > 2000:
+            return content[:2000] + "\n\n...内容太长，已截断。"
+        return f"📄 任务导出\n\n{content}"
+    except Exception as e:
+        return f"❌ 导出失败: {str(e)}"
         
         elif cmd in ['/help', '/h']:
             return """
@@ -193,7 +193,10 @@ class WeChatWorkBot:
     def _handle_task(self, user_id, content):
         """处理任务创建"""
         try:
-            result = self.ingest.process_input(content)
+            result = self.ingest.capture_task(
+                text=content,
+                source="wechat_work"
+            )
             if result:
                 return "✅ 任务已成功添加！\n\n💡 提示：使用 `/report` 查看所有任务"
             else:
