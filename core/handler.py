@@ -362,3 +362,30 @@ class TodoHandler:
             return True, f"✅ Successfully replaced todo.md (backup saved to {backup_path})"
         except Exception as e:
             return False, f"Failed to write file: {e}"
+    
+    def undo_last(self):
+    """
+    Removes the last task row from todo.md.
+    """
+    self._initialize_storage()
+
+    with open(self.file_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    last_task_index = None
+
+    for i in range(len(lines) - 1, -1, -1):
+        if lines[i].strip().startswith("| ["):
+            last_task_index = i
+            break
+
+    if last_task_index is None:
+        return False, "没有可以撤回的任务。"
+
+    removed_line = lines[last_task_index].strip()
+    del lines[last_task_index]
+
+    with open(self.file_path, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+
+    return True, f"↩️ 已撤回最后一条任务：\n{removed_line}"
