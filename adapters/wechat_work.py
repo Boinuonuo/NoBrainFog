@@ -152,24 +152,26 @@ class WeChatWorkBot:
         cmd = command.lower()
         
         if cmd in ['/report', '/rep', '/r']:
-    try:
-        return self.ingest.handler.format_report()
-    except Exception as e:
-        return f"❌ 获取任务失败: {str(e)}"
+            try:
+                return self.ingest.handler.format_report()
+            except Exception as e:
+                return f"❌ 获取任务失败: {str(e)}"
+        
         elif cmd in ['/undo']:
-    try:
-        ok, reply = self.ingest.handler.undo_last()
-        return reply
-    except Exception as e:
-        return f"❌ 撤回失败: {str(e)}"
+            try:
+                ok, reply = self.ingest.handler.undo_last()
+                return reply
+            except Exception as e:
+                return f"❌ 撤回失败: {str(e)}"
+        
         elif cmd in ['/export', '/exp', '/e']:
-    try:
-        content = self.ingest.handler.get_todo_text()
-        if len(content) > 2000:
-            return content[:2000] + "\n\n...内容太长，已截断。"
-        return f"📄 任务导出\n\n{content}"
-    except Exception as e:
-        return f"❌ 导出失败: {str(e)}"
+            try:
+                content = self.ingest.handler.get_todo_text()
+                if len(content) > 2000:
+                    return content[:2000] + "\n\n...内容太长，已截断。"
+            return f"📄 任务导出\n\n{content}"
+        except Exception as e:
+            return f"❌ 导出失败: {str(e)}"
         
         elif cmd in ['/help', '/h']:
             return """
