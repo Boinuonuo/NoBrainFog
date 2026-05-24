@@ -143,19 +143,27 @@ static void print_usage(const char *program_name) {
 int main(int argc, char *argv[]) {
     FILE *file;
     char line[MAX_LINE];
-    TaskRecord records[MAX_TASKS];
+    TaskRecord *records;
     LintStats stats = {0, 0, 0, 0, 0};
     int record_count = 0;
     int line_number = 0;
+    int exit_code = 0;
 
     if (argc != 2) {
         print_usage(argv[0]);
         return 2;
     }
 
+    records = calloc(MAX_TASKS, sizeof(TaskRecord));
+    if (records == NULL) {
+        fprintf(stderr, "Failed to allocate task records.\n");
+        return 2;
+    }
+
     file = fopen(argv[1], "r");
     if (file == NULL) {
         perror("Failed to open todo.md");
+        free(records);
         return 2;
     }
 
@@ -228,9 +236,12 @@ int main(int argc, char *argv[]) {
 
     if (stats.malformed_rows || stats.empty_tasks || stats.invalid_priorities || stats.duplicate_tasks) {
         printf("\nStatus: issues found.\n");
-        return 1;
+        exit_code = 1;
+    } else {
+        printf("\nStatus: clean.\n");
+        exit_code = 0;
     }
 
-    printf("\nStatus: clean.\n");
-    return 0;
+    free(records);
+    return exit_code;
 }
