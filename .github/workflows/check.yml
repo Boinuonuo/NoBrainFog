@@ -63,3 +63,37 @@ jobs:
           python tools/nbf_cli.py --env-file /tmp/nbf-cli.env excel --output /tmp/nobrainfog-cli.xlsx
           test -s /tmp/nobrainfog-cli.xlsx
           python tools/nbf_cli.py --env-file /tmp/nbf-cli.env lint
+
+      - name: Smoke test email parser
+        run: |
+          python - <<'PY'
+          from core.email_parser import parse_email_string
+
+          raw_plain = """From: sender@example.com
+          Subject: Renewal notice
+          Message-ID: <plain-test@example.com>
+          Content-Type: text/plain; charset=utf-8
+
+          Please remind me to renew the domain next Friday.
+
+          -- 
+          Signature should be removed.
+          """
+          parsed_plain = parse_email_string(raw_plain)
+          assert parsed_plain.subject == "Renewal notice"
+          assert "renew the domain" in parsed_plain.body
+          assert "Signature should be removed" not in parsed_plain.body
+          assert "Subject: Renewal notice" in parsed_plain.ingest_text
+
+          raw_html = """From: sender@example.com
+          Subject: HTML task
+          Message-ID: <html-test@example.com>
+          MIME-Version: 1.0
+          Content-Type: text/html; charset=utf-8
+
+          <html><body><p>Book dentist appointment.</p><blockquote>old reply</blockquote></body></html>
+          """
+          parsed_html = parse_email_string(raw_html)
+          assert "Book dentist appointment" in parsed_html.body
+          assert "Body:" in parsed_html.ingest_text
+          PY
