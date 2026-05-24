@@ -8,7 +8,7 @@ IngestService.capture_task(..., source="email").
 """
 from dataclasses import dataclass
 from email import policy
-from email.message import EmailMessage, Message
+from email.message import Message
 from email.parser import BytesParser, Parser
 from html.parser import HTMLParser
 from typing import Iterable, Optional
@@ -38,6 +38,7 @@ FORWARD_MARKERS = (
 )
 
 SIGNATURE_MARKERS = (
+    "--",
     "-- ",
     "Sent from my iPhone",
     "Sent from my iPad",
@@ -257,4 +258,4 @@ def _is_forward_marker(line: str) -> bool:
 
 
 def _is_signature_marker(line: str) -> bool:
-    return any(line.startswith(marker) for marker in SIGNATURE_MARKERS)
+    return any(line == marker or line.startswith(marker) for marker in SIGNATURE_MARKERS)
