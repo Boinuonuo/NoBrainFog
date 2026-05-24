@@ -60,21 +60,25 @@ AI 分析：
 
 
 DISCORD_HELP_EMBED = {
-    "title": "🧠 NoBrainFog Command Center",
+    "title": "🍵 NoBrainFog Command Manual 🧠",
     "description": (
-        "把脑子里的碎片直接丢给我，我会整理成结构化 `todo.md`。\n"
-        "普通输入用于新增任务；下面这些 `/commands` 用于管理和分析任务。"
+        "以下是 Discord adapter 的核心指令说明。\n"
+        "直接把脑子里的碎片丢给我，我会整理成结构化 `todo.md`。\n\u200b"
     ),
+    "color": 0xBA55D3,
     "fields": [
         {
-            "name": "📋 查看与导出",
+            "name": "📋 查看 / 导出 / 导入",
             "value": (
                 "`/report` 或 `/rep`\n"
-                "查看当前任务列表，带临时编号。\n\n"
+                "查看当前任务列表，带临时编号。\n"
+                "*例：`/report`*\n\u200b\n"
                 "`/export` 或 `/exp`\n"
-                "导出完整 `todo.md` 文件。\n\n"
+                "导出完整 `todo.md` 文件。\n"
+                "*例：`/export`*\n\u200b\n"
                 "`/import`\n"
-                "上传 `todo.md` 替换现有任务，会自动备份原文件。"
+                "上传 `todo.md` 替换现有任务，会自动备份原文件。\n"
+                "*注意：这是 Discord 独占能力。*\n\u200b"
             ),
             "inline": False,
         },
@@ -83,7 +87,8 @@ DISCORD_HELP_EMBED = {
             "value": (
                 "直接发文字、图片、或图文混合给我。\n"
                 "我会整理成 Markdown todo。\n"
-                "处理中会给 🧠，成功后给 ✨。"
+                "处理时会先给 🧠，成功后给 ✨。\n"
+                "*例：`明天下午三点整理企业微信接口`*\n\u200b"
             ),
             "inline": False,
         },
@@ -91,11 +96,14 @@ DISCORD_HELP_EMBED = {
             "name": "✅ 完成与编辑",
             "value": (
                 "`/done 2`\n"
-                "把 `#2` 标记为完成。\n\n"
+                "把 `#2` 标记为完成。\n"
+                "*例：`/done 2`*\n\u200b\n"
                 "`/done 地毯`\n"
-                "按关键词匹配任务；如果匹配多条，会要求你用编号。\n\n"
+                "按关键词匹配任务；如果匹配多条，会要求你用编号。\n"
+                "*例：`/done 地毯`*\n\u200b\n"
                 "`/edit 2 新任务内容`\n"
-                "修改 `#2` 的任务描述。"
+                "修改 `#2` 的任务描述。\n"
+                "*例：`/edit 2 改成研究 Cloudflare Tunnel 文档`*\n\u200b"
             ),
             "inline": False,
         },
@@ -103,11 +111,14 @@ DISCORD_HELP_EMBED = {
             "name": "🏷️ 优先级 / 日期 / 备注",
             "value": (
                 "`/pri 2 P1` 或 `/priority 2 P1`\n"
-                "修改优先级，可用 `P0` / `P1` / `P2` / `P3`。\n\n"
+                "修改优先级，可用 `P0` / `P1` / `P2` / `P3`。\n"
+                "*例：`/pri 2 P0`*\n\u200b\n"
                 "`/due 2 2026-05-30` 或 `/deadline 2 2026-05-30`\n"
-                "修改截止日期。清空：`/due 2 none`\n\n"
+                "修改截止日期。清空：`/due 2 none`\n"
+                "*例：`/due 2 2026-05-30`*\n\u200b\n"
                 "`/memo 2 备注内容`\n"
-                "修改备注。清空：`/memo 2 none`"
+                "修改备注。清空：`/memo 2 none`\n"
+                "*例：`/memo 2 等晚上精神好一点再做`*\n\u200b"
             ),
             "inline": False,
         },
@@ -115,13 +126,17 @@ DISCORD_HELP_EMBED = {
             "name": "🧠 AI 分析",
             "value": (
                 "`/prior` 或 `/priority_report`\n"
-                "根据当前 `todo.md` 生成优先级建议。\n\n"
+                "根据当前 `todo.md` 生成优先级建议。\n"
+                "*例：`/prior`*\n\u200b\n"
                 "`/cbt 2`\n"
-                "对某个任务做 CBT 拆解。\n\n"
+                "对某个任务做 CBT 拆解。\n"
+                "*例：`/cbt 2`*\n\u200b\n"
                 "`/cbt all`\n"
-                "分析全部任务。\n\n"
+                "分析全部任务。\n"
+                "*例：`/cbt all`*\n\u200b\n"
                 "`/yesucan`、`/motivate` 或 `/motivation`\n"
-                "生成一段推进/鼓励消息。"
+                "生成一段推进/鼓励消息。\n"
+                "*例：`/yesucan`*\n\u200b"
             ),
             "inline": False,
         },
@@ -132,12 +147,12 @@ DISCORD_HELP_EMBED = {
                 "2. 用 `/report` 查看编号\n"
                 "3. 用 `/done` / `/edit` / `/pri` / `/due` / `/memo` 管理任务\n"
                 "4. 用 `/prior` 或 `/cbt` 处理卡住的任务\n"
-                "5. 用 `/export` 备份完整 `todo.md`"
+                "5. 用 `/export` 备份完整 `todo.md`\n\u200b"
             ),
             "inline": False,
         },
     ],
-    "footer": "Discord adapter supports richer UX: embeds, file upload/export, image input, and reactions.",
+    "footer": "NoBrainFog Discord Adapter | Rich UX: embeds, reactions, image input, file import/export",
 }
 
 
