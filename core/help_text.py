@@ -8,6 +8,9 @@ DISCORD_HELP_TEXT = """
 `/export` 或 `/exp`
 导出完整 todo.md 文件。
 
+`/excel` 或 `/xlsx`
+导出 Excel 表格文件，方便筛选、整理和归档。
+
 `/import`
 上传 todo.md 文件来替换现有任务，会自动备份原文件。
 
@@ -55,7 +58,7 @@ AI 分析：
 2. 用 `/report` 查看编号
 3. 用 `/done`、`/edit`、`/pri`、`/due`、`/memo` 管理任务
 4. 用 `/prior` 或 `/cbt` 处理卡住的任务
-5. 用 `/export` 备份完整 todo.md
+5. 用 `/export` 备份完整 todo.md，或用 `/excel` 导出表格
 """.strip()
 
 
@@ -76,6 +79,9 @@ DISCORD_HELP_EMBED = {
                 "`/export` 或 `/exp`\n"
                 "导出完整 `todo.md` 文件。\n"
                 "*例：`/export`*\n\u200b\n"
+                "`/excel` 或 `/xlsx`\n"
+                "导出 Excel 表格文件，方便筛选、整理和归档。\n"
+                "*例：`/excel`*\n\u200b\n"
                 "`/import`\n"
                 "上传 `todo.md` 替换现有任务，会自动备份原文件。\n"
                 "*注意：这是 Discord 独占能力。*\n\u200b"
@@ -147,7 +153,7 @@ DISCORD_HELP_EMBED = {
                 "2. 用 `/report` 查看编号\n"
                 "3. 用 `/done` / `/edit` / `/pri` / `/due` / `/memo` 管理任务\n"
                 "4. 用 `/prior` 或 `/cbt` 处理卡住的任务\n"
-                "5. 用 `/export` 备份完整 `todo.md`\n\u200b"
+                "5. 用 `/export` 备份 `todo.md`，或用 `/excel` 导出表格\n\u200b"
             ),
             "inline": False,
         },
@@ -212,6 +218,7 @@ AI 分析：
 
 当前限制：
 /import 暂时只支持 Discord。
+/excel 暂时只支持 Discord 文件发送。
 语音转写暂未接入。
 如果 AI 响应很慢，企业微信可能重试请求；NoBrainFog 会用 MsgId 去重，避免重复写入。
 """.strip()
