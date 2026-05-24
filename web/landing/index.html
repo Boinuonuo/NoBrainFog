@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="NoBrainFog turns fragmented thoughts from Discord or WeChat Work into one portable Markdown task vault." />
+  <meta name="description" content="NoBrainFog turns fragmented thoughts from Discord or WeChat Work into one portable Markdown task vault." data-i18n-attr="content:meta.description" />
   <title>NoBrainFog — AI Task Intake System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -17,35 +17,41 @@
         <span class="brand-mark">🧠</span>
         <span>NoBrainFog</span>
       </a>
-      <nav class="nav-links" aria-label="Main navigation">
-        <a href="#flow">Flow</a>
-        <a href="#features">Features</a>
-        <a href="#exports">Exports</a>
-        <a href="https://github.com/Boinuonuo/NoBrainFog">GitHub</a>
-      </nav>
+      <div class="header-actions">
+        <nav class="nav-links" aria-label="Main navigation" data-i18n-attr="aria-label:nav.aria">
+          <a href="#flow" data-i18n="nav.flow">Flow</a>
+          <a href="#features" data-i18n="nav.features">Features</a>
+          <a href="#exports" data-i18n="nav.exports">Exports</a>
+          <a href="https://github.com/Boinuonuo/NoBrainFog">GitHub</a>
+        </nav>
+        <div class="language-toggle" aria-label="Language switcher" data-i18n-attr="aria-label:language.aria">
+          <button type="button" class="language-button is-active" data-lang="en">EN</button>
+          <button type="button" class="language-button" data-lang="zh">中文</button>
+        </div>
+      </div>
     </header>
 
     <main id="top">
       <section class="hero section-grid">
         <div class="hero-copy">
-          <p class="eyebrow">AI-powered personal task intake</p>
-          <h1>Turn messy thoughts into one portable task vault.</h1>
-          <p class="hero-text">
+          <p class="eyebrow" data-i18n="hero.eyebrow">AI-powered personal task intake</p>
+          <h1 data-i18n="hero.title">Turn messy thoughts into one portable task vault.</h1>
+          <p class="hero-text" data-i18n-html="hero.text">
             NoBrainFog captures fragmented ideas from Discord or WeChat Work,
             organizes them into structured Markdown tasks, and keeps the real data
             layer simple: one local <code>todo.md</code> file.
           </p>
           <div class="hero-actions">
-            <a class="button primary" href="https://github.com/Boinuonuo/NoBrainFog">View on GitHub</a>
-            <a class="button secondary" href="#exports">See exports</a>
+            <a class="button primary" href="https://github.com/Boinuonuo/NoBrainFog" data-i18n="hero.github">View on GitHub</a>
+            <a class="button secondary" href="#exports" data-i18n="hero.exports">See exports</a>
           </div>
         </div>
 
-        <div class="terminal-card" aria-label="NoBrainFog example command output">
+        <div class="terminal-card" aria-label="NoBrainFog example command output" data-i18n-attr="aria-label:terminal.aria">
           <div class="terminal-topbar">
             <span></span><span></span><span></span>
           </div>
-          <pre><code>Discord / WeChat Work
+          <pre><code data-i18n="terminal.flow">Discord / WeChat Work
         ↓
 NoBrainFog adapter
         ↓
@@ -57,57 +63,57 @@ Markdown / Excel / Sync</code></pre>
 
       <section id="flow" class="section-card">
         <div class="section-heading">
-          <p class="eyebrow">System flow</p>
-          <h2>Adapters are replaceable. The vault stays yours.</h2>
+          <p class="eyebrow" data-i18n="flow.eyebrow">System flow</p>
+          <h2 data-i18n="flow.title">Adapters are replaceable. The vault stays yours.</h2>
         </div>
-        <div class="flow-lane" aria-label="NoBrainFog system flow">
-          <div class="flow-node">Discord DM</div>
+        <div class="flow-lane" aria-label="NoBrainFog system flow" data-i18n-attr="aria-label:flow.aria">
+          <div class="flow-node" data-i18n="flow.node1">Discord DM</div>
           <div class="flow-arrow">→</div>
           <div class="flow-node">NoBrainFog</div>
           <div class="flow-arrow">→</div>
           <div class="flow-node">todo.md</div>
           <div class="flow-arrow">→</div>
-          <div class="flow-node">Excel / Drive</div>
+          <div class="flow-node" data-i18n="flow.node4">Excel / Drive</div>
         </div>
       </section>
 
       <section id="features" class="feature-grid">
         <article class="feature-card">
           <span class="feature-icon">💬</span>
-          <h3>Capture anywhere</h3>
-          <p>Send plain text, screenshots, or fragments. NoBrainFog turns them into structured task rows.</p>
+          <h3 data-i18n="features.capture.title">Capture anywhere</h3>
+          <p data-i18n="features.capture.text">Send plain text, screenshots, or fragments. NoBrainFog turns them into structured task rows.</p>
         </article>
         <article class="feature-card">
           <span class="feature-icon">📋</span>
-          <h3>Manage by command</h3>
-          <p>Use commands like <code>/report</code>, <code>/done</code>, <code>/edit</code>, <code>/pri</code>, <code>/due</code>, and <code>/memo</code>.</p>
+          <h3 data-i18n="features.manage.title">Manage by command</h3>
+          <p data-i18n-html="features.manage.text">Use commands like <code>/report</code>, <code>/done</code>, <code>/edit</code>, <code>/pri</code>, <code>/due</code>, and <code>/memo</code>.</p>
         </article>
         <article class="feature-card">
           <span class="feature-icon">🧘</span>
-          <h3>Think with AI</h3>
-          <p>Generate priority analysis, CBT breakdowns, and motivational nudges when tasks feel stuck.</p>
+          <h3 data-i18n="features.ai.title">Think with AI</h3>
+          <p data-i18n="features.ai.text">Generate priority analysis, CBT breakdowns, and motivational nudges when tasks feel stuck.</p>
         </article>
       </section>
 
       <section id="exports" class="section-card export-section">
         <div>
-          <p class="eyebrow">Portable output</p>
-          <h2>Markdown first. Excel when you need a spreadsheet.</h2>
-          <p>
+          <p class="eyebrow" data-i18n="exports.eyebrow">Portable output</p>
+          <h2 data-i18n="exports.title">Markdown first. Excel when you need a spreadsheet.</h2>
+          <p data-i18n-html="exports.text">
             The core vault remains a simple <code>todo.md</code>, but Discord can also export
             a formatted <code>.xlsx</code> file for sorting, filtering, archiving, or sharing.
           </p>
         </div>
         <div class="command-list">
-          <button class="copy-command" data-command="/export"><code>/export</code><span>Export todo.md</span></button>
-          <button class="copy-command" data-command="/excel"><code>/excel</code><span>Export Excel</span></button>
-          <button class="copy-command" data-command="/xlsx"><code>/xlsx</code><span>Excel alias</span></button>
+          <button class="copy-command" data-command="/export"><code>/export</code><span data-i18n="commands.export">Export todo.md</span></button>
+          <button class="copy-command" data-command="/excel"><code>/excel</code><span data-i18n="commands.excel">Export Excel</span></button>
+          <button class="copy-command" data-command="/xlsx"><code>/xlsx</code><span data-i18n="commands.xlsx">Excel alias</span></button>
         </div>
       </section>
     </main>
 
     <footer class="site-footer">
-      <span>NoBrainFog keeps the task layer local, readable, and sync-friendly.</span>
+      <span data-i18n="footer.text">NoBrainFog keeps the task layer local, readable, and sync-friendly.</span>
       <span id="copy-status" aria-live="polite"></span>
     </footer>
   </div>
