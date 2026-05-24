@@ -1,10 +1,23 @@
 # adapters/wechat_work.py
-import time
-import json
+import base64
 import hashlib
+import json
+import socket
+import struct
+import time
+import xml.etree.ElementTree as ET
+from xml.sax.saxutils import escape
+
 import requests
+from Crypto.Cipher import AES
 from flask import Flask, request, jsonify
+
 from core.ingest import IngestService
+
+
+class WeChatWorkCryptoError(Exception):
+    """Raised when WeChat Work callback crypto verification/decryption fails."""
+
 
 class WeChatWorkBot:
     def __init__(self, config):
@@ -18,6 +31,7 @@ class WeChatWorkBot:
         self.agent_id = config.get("WECHAT_AGENT_ID")
         self.token = config.get("WECHAT_TOKEN")
         self.encoding_aes_key = config.get("WECHAT_ENCODING_AES_KEY")
+        self.aes_key = self._build_aes_key(self.encoding_aes_key)
         
         # 认证相关
         self.access_token = None
@@ -27,7 +41,17 @@ class WeChatWorkBot:
         self.authorized_users = set(config.get("AUTHORIZED_USERS", []))
         
         self._setup_routes()
-    
+
+    def _build_aes_key(self, encoding_aes_key):
+        """Build the 32-byte AES key required by WeChat Work callback encryption."""
+        if not encoding_aes_key:
+            return None
+
+        try:
+            return base64.b64decode(f"{encoding_aes_key}=")
+        except Exception as e:
+            raise WeChatWorkCryptoError(f"Invalid WECHAT_ENCODING_AES_KEY: {e}")
+
     def _get_access_token(self):
         """获取企业微信 access_token"""
         if time.time() > self.token_expires - 300:  # 提前5分钟刷新
@@ -53,86 +77,175 @@ class WeChatWorkBot:
                 raise
         
         return self.access_token
-    
-    def _verify_signature(self, signature, timestamp, nonce):
-        """验证消息签名"""
-        if not all([signature, timestamp, nonce, self.token]):
-            return False
-        
-        # 构造签名
-        tmp_arr = [self.token, timestamp, nonce]
-        tmp_arr.sort()
-        tmp_str = ''.join(tmp_arr)
-        tmp_str = hashlib.sha1(tmp_str.encode('utf-8')).hexdigest()
-        
-        return tmp_str == signature
+
+    def _calculate_signature(self, timestamp, nonce, encrypted_payload):
+        """Calculate WeChat Work callback SHA1 signature."""
+        if not all([self.token, timestamp, nonce, encrypted_payload]):
+            return None
+
+        items = [self.token, timestamp, nonce, encrypted_payload]
+        items.sort()
+        return hashlib.sha1(''.join(items).encode('utf-8')).hexdigest()
+
+    def _verify_signature(self, signature, timestamp, nonce, encrypted_payload):
+        """Verify WeChat Work callback signature."""
+        expected = self._calculate_signature(timestamp, nonce, encrypted_payload)
+        return bool(expected and signature and expected == signature)
+
+    def _decrypt_payload(self, encrypted_payload):
+        """Decrypt WeChat Work encrypted payload and return plaintext XML/text."""
+        if not self.aes_key or len(self.aes_key) != 32:
+            raise WeChatWorkCryptoError("Invalid AES key length. Check WECHAT_ENCODING_AES_KEY.")
+
+        try:
+            encrypted_data = base64.b64decode(encrypted_payload)
+            cipher = AES.new(self.aes_key, AES.MODE_CBC, self.aes_key[:16])
+            decrypted = cipher.decrypt(encrypted_data)
+        except Exception as e:
+            raise WeChatWorkCryptoError(f"AES decrypt failed: {e}")
+
+        if not decrypted:
+            raise WeChatWorkCryptoError("AES decrypt returned empty data.")
+
+        pad = decrypted[-1]
+        if pad < 1 or pad > 32:
+            raise WeChatWorkCryptoError("Invalid PKCS#7 padding.")
+
+        content = decrypted[:-pad]
+        if len(content) < 20:
+            raise WeChatWorkCryptoError("Decrypted payload is too short.")
+
+        xml_length = socket.ntohl(struct.unpack("I", content[16:20])[0])
+        xml_start = 20
+        xml_end = xml_start + xml_length
+        plaintext = content[xml_start:xml_end].decode('utf-8')
+        from_corp_id = content[xml_end:].decode('utf-8')
+
+        if self.corp_id and from_corp_id != self.corp_id:
+            raise WeChatWorkCryptoError("Corp ID mismatch in decrypted callback payload.")
+
+        return plaintext
+
+    def _encrypt_payload(self, plaintext_xml):
+        """Encrypt response XML for WeChat Work passive replies."""
+        if not self.aes_key or len(self.aes_key) != 32:
+            raise WeChatWorkCryptoError("Invalid AES key length. Check WECHAT_ENCODING_AES_KEY.")
+
+        random_bytes = b'NoBrainFogRndStr!'
+        xml_bytes = plaintext_xml.encode('utf-8')
+        corp_bytes = (self.corp_id or '').encode('utf-8')
+        msg = random_bytes + struct.pack('!I', len(xml_bytes)) + xml_bytes + corp_bytes
+
+        pad = 32 - (len(msg) % 32)
+        if pad == 0:
+            pad = 32
+        msg += bytes([pad]) * pad
+
+        cipher = AES.new(self.aes_key, AES.MODE_CBC, self.aes_key[:16])
+        encrypted = cipher.encrypt(msg)
+        return base64.b64encode(encrypted).decode('utf-8')
+
+    def _extract_encrypt_from_xml(self, xml_data):
+        """Extract <Encrypt> value from a WeChat Work callback XML body."""
+        try:
+            root = ET.fromstring(xml_data)
+        except Exception as e:
+            raise WeChatWorkCryptoError(f"Invalid callback XML: {e}")
+
+        encrypted_node = root.find('Encrypt')
+        if encrypted_node is None or not encrypted_node.text:
+            raise WeChatWorkCryptoError("Missing Encrypt field in callback XML.")
+
+        return encrypted_node.text
+
+    def _make_encrypted_response_xml(self, plaintext_xml, timestamp=None, nonce=None):
+        """Build encrypted passive response XML required by WeChat Work."""
+        timestamp = timestamp or str(int(time.time()))
+        nonce = nonce or str(int(time.time() * 1000))
+        encrypted = self._encrypt_payload(plaintext_xml)
+        signature = self._calculate_signature(timestamp, nonce, encrypted)
+
+        return f"""
+<xml>
+<Encrypt><![CDATA[{encrypted}]]></Encrypt>
+<MsgSignature><![CDATA[{signature}]]></MsgSignature>
+<TimeStamp>{timestamp}</TimeStamp>
+<Nonce><![CDATA[{nonce}]]></Nonce>
+</xml>
+""".strip()
     
     def _setup_routes(self):
         """设置路由"""
         
         @self.app.route('/wechat', methods=['GET'])
         def verify_url():
-            """验证服务器地址"""
+            """验证企业微信服务器地址"""
             signature = request.args.get('msg_signature', '')
             timestamp = request.args.get('timestamp', '')
             nonce = request.args.get('nonce', '')
             echostr = request.args.get('echostr', '')
             
-            if self._verify_signature(signature, timestamp, nonce):
+            try:
+                if not self._verify_signature(signature, timestamp, nonce, echostr):
+                    print("❌ 企业微信服务器验证失败: signature mismatch")
+                    return 'Verification failed', 403
+
+                plain_echostr = self._decrypt_payload(echostr)
                 print("✅ 企业微信服务器验证成功")
-                return echostr
-            else:
-                print("❌ 企业微信服务器验证失败")
+                return plain_echostr
+            except Exception as e:
+                print(f"❌ 企业微信服务器验证异常: {e}")
                 return 'Verification failed', 403
         
         @self.app.route('/wechat', methods=['POST'])
         def handle_message():
-            """处理消息"""
+            """处理企业微信消息"""
             try:
-                # 验证签名
                 signature = request.args.get('msg_signature', '')
                 timestamp = request.args.get('timestamp', '')
                 nonce = request.args.get('nonce', '')
                 
-                if not self._verify_signature(signature, timestamp, nonce):
-                    return jsonify({'status': 'error', 'message': 'Invalid signature'})
-                
-                # 解析消息
                 data = request.data
                 if not data:
                     return jsonify({'status': 'error', 'message': 'No data received'})
+
+                encrypted_payload = self._extract_encrypt_from_xml(data)
+
+                if not self._verify_signature(signature, timestamp, nonce, encrypted_payload):
+                    print("❌ 企业微信消息签名验证失败")
+                    return jsonify({'status': 'error', 'message': 'Invalid signature'}), 403
+
+                decrypted_xml = self._decrypt_payload(encrypted_payload)
+                root = ET.fromstring(decrypted_xml)
                 
-                # 这里简化处理，实际需要解密消息
-                import xml.etree.ElementTree as ET
-                root = ET.fromstring(data)
-                
-                msg_type = root.find('MsgType').text
-                user_id = root.find('FromUserName').text
-                create_time = root.find('CreateTime').text
+                msg_type = root.findtext('MsgType', '')
+                user_id = root.findtext('FromUserName', '')
                 
                 # 检查用户权限
                 if self.authorized_users and user_id not in self.authorized_users:
                     print(f"❌ 未授权用户: {user_id}")
-                    return self._make_response_xml(user_id, "❌ 您没有权限使用此机器人")
+                    plaintext_response = self._make_plain_response_xml(user_id, "❌ 您没有权限使用此机器人")
+                    return self._make_encrypted_response_xml(plaintext_response, timestamp, nonce)
                 
                 # 处理不同类型的消息
                 if msg_type == 'text':
-                    content = root.find('Content').text
+                    content = root.findtext('Content', '')
                     response = self._process_text_message(user_id, content)
                 elif msg_type == 'image':
-                    media_id = root.find('MediaId').text
+                    media_id = root.findtext('MediaId', '')
                     response = self._process_image_message(user_id, media_id)
                 elif msg_type == 'voice':
-                    media_id = root.find('MediaId').text
+                    media_id = root.findtext('MediaId', '')
                     response = self._process_voice_message(user_id, media_id)
                 else:
                     response = "❌ 暂不支持此类型消息"
-                
-                return self._make_response_xml(user_id, response)
+
+                plaintext_response = self._make_plain_response_xml(user_id, response)
+                return self._make_encrypted_response_xml(plaintext_response, timestamp, nonce)
                 
             except Exception as e:
                 print(f"❌ 处理消息异常: {e}")
-                return jsonify({'status': 'error', 'message': str(e)})
+                return jsonify({'status': 'error', 'message': str(e)}), 500
     
     def _process_text_message(self, user_id, content):
         """处理文本消息"""
@@ -215,10 +328,8 @@ class WeChatWorkBot:
     def _process_image_message(self, user_id, media_id):
         """处理图片消息"""
         try:
-            # 下载图片
             image_data = self._download_media(media_id)
             if image_data:
-                # 处理图片内容
                 result = self.ingest.process_image_input(image_data)
                 if result:
                     return "✅ 图片任务已成功添加！"
@@ -232,10 +343,8 @@ class WeChatWorkBot:
     def _process_voice_message(self, user_id, media_id):
         """处理语音消息"""
         try:
-            # 下载语音
             voice_data = self._download_media(media_id)
             if voice_data:
-                # 处理语音内容
                 result = self.ingest.process_voice_input(voice_data)
                 if result:
                     return "✅ 语音任务已成功添加！"
@@ -261,24 +370,23 @@ class WeChatWorkBot:
         except Exception as e:
             print(f"❌ 下载媒体异常: {e}")
             return None
-    
-    def _make_response_xml(self, user_id, content):
-        """构造响应消息 XML"""
+
+    def _make_plain_response_xml(self, user_id, content):
+        """构造未加密的企业微信被动响应 XML。"""
         timestamp = str(int(time.time()))
-        nonce = str(int(time.time() * 1000))
-        
-        # 简化版本，实际需要加密
-        xml = f"""
+        safe_content = escape(content or "")
+        safe_user_id = escape(user_id or "")
+        safe_agent_id = escape(str(self.agent_id or ""))
+
+        return f"""
 <xml>
-<ToUserName><![CDATA[{user_id}]]></ToUserName>
-<FromUserName><![CDATA[{self.agent_id}]]></FromUserName>
+<ToUserName><![CDATA[{safe_user_id}]]></ToUserName>
+<FromUserName><![CDATA[{safe_agent_id}]]></FromUserName>
 <CreateTime>{timestamp}</CreateTime>
 <MsgType><![CDATA[text]]></MsgType>
-<Content><![CDATA[{content}]]></Content>
+<Content><![CDATA[{safe_content}]]></Content>
 </xml>
 """.strip()
-        
-        return xml
     
     def send_message(self, user_id, content):
         """主动发送消息"""
