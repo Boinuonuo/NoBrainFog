@@ -1,6 +1,6 @@
 import discord
 
-from core.help_text import DISCORD_HELP_TEXT
+from core.help_text import DISCORD_HELP_EMBED, DISCORD_HELP_TEXT
 from core.ingest import IngestService
 
 
@@ -36,7 +36,7 @@ class NoBrainFogBot(discord.Client):
         command = raw_command.lower()
 
         if command in ["/admhelp", "/help", "/h"]:
-            await message.channel.send(DISCORD_HELP_TEXT)
+            await self._send_help(message)
             return
 
         if command in ["/export", "/exp"]:
@@ -127,6 +127,25 @@ class NoBrainFogBot(discord.Client):
             return
 
         await self._handle_capture(message)
+
+    async def _send_help(self, message):
+        embed = discord.Embed(
+            title=DISCORD_HELP_EMBED["title"],
+            description=DISCORD_HELP_EMBED["description"],
+        )
+        for field in DISCORD_HELP_EMBED["fields"]:
+            embed.add_field(
+                name=field["name"],
+                value=field["value"],
+                inline=field.get("inline", False),
+            )
+        embed.set_footer(text=DISCORD_HELP_EMBED["footer"])
+
+        try:
+            await message.channel.send(embed=embed)
+        except Exception as e:
+            print(f"⚠️ Failed to send Discord help embed, falling back to text: {e}")
+            await message.channel.send(DISCORD_HELP_TEXT)
 
     async def _handle_import(self, message):
         if not message.attachments:
