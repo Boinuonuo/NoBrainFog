@@ -1,22 +1,20 @@
-# 🧠 NoBrainFog (无脑·雾)
+# 🧠 NoBrainFog
 
-> “用了它，头脑清楚，告别脑雾。”
+NoBrainFog 是一个 AI 驱动的个人任务入口系统。它把你在 Discord 或企业微信里发来的碎片化想法整理成统一的 Markdown `todo.md`。
 
-**NoBrainFog** 是一套基于 AI 驱动的个人任务架构系统。它能将你零散、感性、甚至带有情绪的碎片化输入，转化为结构化的 Markdown 任务矩阵。
+核心思想：聊天平台只是入口，真正的数据层是同一个 `todo.md`。
 
-它的核心不是某一个聊天平台，而是一个共享的 `todo.md` 数据层。Discord、企业微信、未来的 CLI / Email adapter 都只是不同入口。
+```text
+Discord / WeChat Work
+        ↓
+NoBrainFog adapter process
+        ↓
+/root/nbf-vault/todo.md
+        ↓
+rclone / Google Drive sync
+```
 
-## ✨ 特性
-
-- **Vibe-to-Grid**：允许胡言乱语，AI 负责逻辑收束。
-- **Time Intelligence**：自动识别“后天”、“下周三”并计算精准日期。
-- **Privacy First**：核心逻辑与展示层分离，任务数据保存在本地 `todo.md`。
-- **Multi-Adapter**：同一份代码可以启动多个 adapter 进程，例如 Discord + 企业微信。
-- **Shared Data Layer**：多个 adapter 可以指向同一个 `MD_PATH`，配合 rclone / Google Drive 做同步。
-
-## 🧱 推荐架构
-
-推荐把代码、配置、数据分开：
+## 推荐目录结构
 
 ```text
 /root/NoBrainFog/                  # 唯一代码目录，git pull 只在这里
@@ -27,7 +25,7 @@
   todo.md                          # 唯一真实任务文件，可被 rclone 同步
 ```
 
-核心原则：
+原则：
 
 ```text
 代码只有一份
@@ -35,21 +33,7 @@
 数据只能有一份
 ```
 
-典型数据流：
-
-```text
-Discord / WeChat Work
-        ↓
-NoBrainFog adapter process
-        ↓
-/root/nbf-vault/todo.md
-        ↓
-rclone sync / Google Drive
-        ↓
-外部编辑也能回流到 bot
-```
-
-## 📦 安装
+## 安装
 
 ```bash
 cd /root
@@ -57,12 +41,12 @@ cd /root
 git clone https://github.com/Boinuonuo/NoBrainFog.git
 cd /root/NoBrainFog
 
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-如果你已经 clone 过：
+如果已经 clone 过：
 
 ```bash
 cd /root/NoBrainFog
@@ -71,111 +55,67 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## 🔐 配置 env 文件
+## 配置 env
 
-NoBrainFog 不再默认读取根目录 `.env`。
-
-现在必须显式指定 adapter env 文件：
+NoBrainFog 不再默认读取根目录 `.env`。每个 adapter 必须显式指定 env 文件。
 
 ```bash
 python main.py --env-file /root/nobrainfog-config/discord.env
 python main.py --env-file /root/nobrainfog-config/wechat.env
 ```
 
-创建配置目录：
+创建配置目录并复制模板：
 
 ```bash
 mkdir -p /root/nobrainfog-config
 mkdir -p /root/nbf-vault
-```
 
-复制模板：
-
-```bash
 cp /root/NoBrainFog/discord.env.example /root/nobrainfog-config/discord.env
 cp /root/NoBrainFog/wechat.env.example /root/nobrainfog-config/wechat.env
 ```
 
-编辑真实配置：
-
-```bash
-nano /root/nobrainfog-config/discord.env
-nano /root/nobrainfog-config/wechat.env
-```
-
-两份 env 都建议指向同一个任务文件：
+两份真实 env 都建议指向同一个任务文件：
 
 ```env
 MD_PATH=/root/nbf-vault/todo.md
 ```
 
-不要把真实 env 文件提交到 GitHub。它们包含 Discord token、企业微信 Secret、AI API Key 等敏感信息。
+不要提交真实 env 文件。它们包含 Discord token、企业微信 Secret、AI API Key 等敏感信息。
 
-## 🤖 Discord 配置教程
+## Discord 配置
 
 ### 1. 创建 Discord Application
 
-1. 打开 Discord Developer Portal：<https://discord.com/developers/applications>
-2. 点击 **New Application**。
-3. 命名，例如 `NoBrainFog`。
-4. 进入这个 application 的详情页。
+打开 <https://discord.com/developers/applications>。
 
-### 2. 创建 Bot
+1. 点击 **New Application**。
+2. 命名，例如 `NoBrainFog`。
+3. 左侧进入 **Bot**。
+4. 创建 bot，并复制 **Token**。
+5. 在 Bot 页面打开 **MESSAGE CONTENT INTENT**。
 
-1. 左侧进入 **Bot**。
-2. 点击 **Add Bot** 或创建 bot user。
-3. 在 Bot 页面复制 **Token**。
-4. 把 token 写入：
-
-```env
-DISCORD_TOKEN=your_discord_bot_token_here
-```
-
-Bot token 等同密码，不要截图、不要发给别人、不要提交到 GitHub。
-
-### 3. 开启 Message Content Intent
-
-NoBrainFog 的 Discord adapter 会读取你的 DM 文本内容，所以需要在 Developer Portal 的 Bot 页面开启：
-
-```text
-Privileged Gateway Intents
-  MESSAGE CONTENT INTENT = ON
-```
-
-如果这个没有打开，bot 可能上线了，但看不到你发的文字内容。
-
-### 4. 获取你的 Discord User ID
-
-NoBrainFog 默认只处理指定用户的私信，避免别人误用你的 bot。
-
-获取方法：
+### 2. 获取你的 Discord User ID
 
 1. Discord 用户设置里打开 **Developer Mode**。
 2. 右键你的头像或用户名。
 3. 点击 **Copy User ID**。
-4. 写入：
+4. 写入 `TARGET_USER_ID`。
 
-```env
-TARGET_USER_ID=123456789012345678
+### 3. 邀请 Bot
+
+Developer Portal：
+
+```text
+OAuth2 → URL Generator
 ```
 
-### 5. 邀请 Bot 到服务器
-
-1. Developer Portal 左侧进入 **OAuth2**。
-2. 进入 **URL Generator**。
-3. Scopes 选择：
+Scopes 选择：
 
 ```text
 bot
 ```
 
-如果你之后使用 slash command，再加：
-
-```text
-applications.commands
-```
-
-4. Bot Permissions 建议至少选择：
+Bot Permissions 至少选择：
 
 ```text
 Send Messages
@@ -183,20 +123,9 @@ Read Message History
 Attach Files
 ```
 
-5. 复制生成的邀请 URL，在浏览器打开。
-6. 选择你的服务器并授权。
+NoBrainFog 当前主要处理你和 bot 的 DM。邀请进服务器的意义是方便建立 DM 关系。
 
-NoBrainFog 当前主要处理你和 bot 的 DM。邀请进服务器的意义是让你和 bot 之间建立共同服务器关系，方便打开私信。
-
-### 6. 配置 Discord env
-
-编辑：
-
-```bash
-nano /root/nobrainfog-config/discord.env
-```
-
-最小配置示例：
+### 4. Discord env 示例
 
 ```env
 ADAPTER_TYPE=discord
@@ -213,7 +142,7 @@ MD_PATH=/root/nbf-vault/todo.md
 CATEGORIES=Personal,Work,Shop,Art,Finance,Admin
 ```
 
-启动 Discord adapter：
+启动：
 
 ```bash
 cd /root/NoBrainFog
@@ -221,69 +150,41 @@ source .venv/bin/activate
 python main.py --env-file /root/nobrainfog-config/discord.env
 ```
 
-看到类似输出即代表上线：
+成功时会看到：
 
 ```text
 ✨ NoBrainFog Bot is now online as ...
 ```
 
-### 7. Discord 使用方法
+## 企业微信配置
 
-给 bot 发私信：
+企业微信 adapter 提供 `/wechat` webhook，让企业微信把消息转发给 NoBrainFog。
 
-```text
-明天下午三点提醒我整理企业微信 webhook 配置
-```
-
-常用命令：
-
-```text
-/report 或 /rep      查看任务列表
-/export 或 /exp      导出 todo.md
-/import              上传 todo.md 替换当前任务文件
-/undo                撤回最后一条任务
-/done 2              标记 #2 完成
-/edit 2 新内容       修改任务描述
-/pri 2 P1            修改优先级
-/due 2 2026-05-30    修改截止日期
-/memo 2 备注         修改备注
-/admhelp             查看完整帮助
-```
-
-## 💬 企业微信配置教程
-
-企业微信 adapter 的作用是提供一个公网可访问的 `/wechat` webhook，让企业微信把消息转发给 NoBrainFog。
-
-整体链路：
+推荐公网链路：
 
 ```text
 企业微信后台
   ↓
 https://wechat.your-domain.com/wechat
   ↓
-Nginx / Tunnel
+Cloudflare Tunnel / Nginx
   ↓
 http://127.0.0.1:8080/wechat
   ↓
 NoBrainFog WeChat Work adapter
-  ↓
-/root/nbf-vault/todo.md
 ```
 
 ### 1. 创建企业微信自建应用
 
-1. 登录企业微信管理后台：<https://work.weixin.qq.com/>
-2. 进入 **应用管理**。
-3. 找到 **自建应用**。
-4. 点击 **创建应用**。
-5. 填写应用信息：
-   - 应用名称：`NoBrainFog`
-   - 应用介绍：AI 驱动的任务管理工具
-   - 应用图标：任选
+企业微信管理后台：<https://work.weixin.qq.com/>
 
-### 2. 获取企业微信 credentials
+```text
+应用管理 → 自建应用 → 创建应用
+```
 
-你需要准备这些值：
+### 2. 获取 credentials
+
+需要准备：
 
 ```text
 WECHAT_CORP_ID
@@ -293,27 +194,17 @@ WECHAT_TOKEN
 WECHAT_ENCODING_AES_KEY
 ```
 
-对应位置：
+位置：
 
-- **Corp ID**：企业微信后台 → 我的企业 → 企业信息。
+- **Corp ID**：我的企业 → 企业信息。
 - **Agent ID**：自建应用详情页 → 凭证与基础信息。
-- **Corp Secret / 应用 Secret**：自建应用详情页 → 凭证与基础信息。
+- **Corp Secret**：自建应用详情页 → 凭证与基础信息。
 - **Token**：自建应用详情页 → 接收消息 → API 接收消息服务器配置。
 - **EncodingAESKey**：同一个接收消息页面随机生成。
 
-`Token` 是你自己设置的随机字符串。它必须同时写在企业微信页面和 `wechat.env` 里。
+`WECHAT_TOKEN` 和 `WECHAT_ENCODING_AES_KEY` 必须同时写在企业微信页面和 `wechat.env` 里，并保持完全一致。
 
-`EncodingAESKey` 建议使用企业微信页面的随机生成按钮。它也必须同时写在企业微信页面和 `wechat.env` 里。
-
-### 3. 配置 WeChat env
-
-编辑：
-
-```bash
-nano /root/nobrainfog-config/wechat.env
-```
-
-最小配置示例：
+### 3. WeChat env 示例
 
 ```env
 ADAPTER_TYPE=wechat_work
@@ -331,11 +222,14 @@ WECHAT_ENCODING_AES_KEY=your_encoding_aes_key_here
 
 AUTHORIZED_USERS=
 
+# Optional. Leave empty to default to a hidden folder next to MD_PATH.
+# WECHAT_DEDUPE_DIR=/root/nbf-vault/.wechat_msg_dedupe
+
 MD_PATH=/root/nbf-vault/todo.md
 CATEGORIES=Personal,Work,Shop,Art,Finance,Admin
 ```
 
-`AUTHORIZED_USERS` 可以留空，表示允许所有能访问该企业微信应用的用户使用。之后如果要限制用户，可以填企业微信 user id，多个用户用英文逗号分隔。
+`AUTHORIZED_USERS` 可以留空，表示允许所有能访问该应用的用户使用。之后如果要限制用户，可以填企业微信 user id，多个用户用英文逗号分隔。
 
 ### 4. 启动 WeChat adapter
 
@@ -345,7 +239,7 @@ source .venv/bin/activate
 python main.py --env-file /root/nobrainfog-config/wechat.env
 ```
 
-成功时会看到类似：
+成功时会看到：
 
 ```text
 🚀 企业微信机器人启动在 0.0.0.0:8080
@@ -357,144 +251,133 @@ python main.py --env-file /root/nobrainfog-config/wechat.env
 curl -i http://127.0.0.1:8080/wechat
 ```
 
-看到 `403 Verification failed` 不一定是坏事。它说明 `/wechat` route 已经活了，只是你没有带企业微信验证参数。
+看到 `403 Verification failed` 通常是正常的，说明 `/wechat` route 活着，只是你没有带企业微信签名参数。
 
-### 5. 准备公网 HTTPS 域名
+### 5. Cloudflare Tunnel 推荐配置
 
-企业微信后台要求 URL 以 `http://` 或 `https://` 开头。生产环境建议使用 HTTPS。
-
-推荐使用专用子域名：
+如果 cloudflared 和 NoBrainFog 在同一台 Debian 上，Cloudflare Tunnel 的 Public Hostname 可以这样填：
 
 ```text
-wechat.your-domain.com
+Subdomain: wechat
+Domain: your-domain.com
+Path: 留空
+Service Type: HTTP
+Service URL: localhost:8080
 ```
 
-DNS 中添加 A 记录：
-
-```text
-wechat.your-domain.com -> 你的 Debian 服务器公网 IP
-```
-
-### 6. Nginx 反向代理
-
-安装 Nginx 和 Certbot：
-
-```bash
-sudo apt update
-sudo apt install nginx certbot python3-certbot-nginx -y
-```
-
-创建 Nginx 配置：
-
-```bash
-sudo nano /etc/nginx/sites-available/nobrainfog-wechat
-```
-
-示例配置：
-
-```nginx
-server {
-    server_name wechat.your-domain.com;
-
-    location /wechat {
-        proxy_pass http://127.0.0.1:8080/wechat;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-启用配置：
-
-```bash
-sudo ln -s /etc/nginx/sites-available/nobrainfog-wechat /etc/nginx/sites-enabled/nobrainfog-wechat
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-申请 HTTPS 证书：
-
-```bash
-sudo certbot --nginx -d wechat.your-domain.com
-```
-
-最终企业微信后台 URL 填：
-
-```text
-https://wechat.your-domain.com/wechat
-```
-
-### 7. 企业微信后台接收消息配置
-
-进入自建应用详情页：
-
-```text
-应用管理 → 自建应用 → NoBrainFog → 接收消息 → API 接收消息
-```
-
-填写：
+企业微信后台最终填写：
 
 ```text
 URL: https://wechat.your-domain.com/wechat
-Token: 和 WECHAT_TOKEN 一模一样
-EncodingAESKey: 和 WECHAT_ENCODING_AES_KEY 一模一样
+Token: 和 WECHAT_TOKEN 一样
+EncodingAESKey: 和 WECHAT_ENCODING_AES_KEY 一样
 ```
 
-然后保存。
+### 6. 企业微信可信 IP
 
-如果保存失败，优先检查：
+NoBrainFog 会优先使用企业微信 `message/send` 接口主动回复你。这个出站接口需要企业微信后台允许你的服务器公网出口 IP。
 
-1. WeChat adapter 是否正在运行。
-2. 域名 DNS 是否指向正确服务器。
-3. Nginx 是否能把 `/wechat` 转发到 `127.0.0.1:8080`。
-4. 企业微信页面的 Token 是否和 `wechat.env` 一致。
-5. 企业微信页面的 EncodingAESKey 是否和 `wechat.env` 一致。
-6. Flask / Python 控制台是否有签名或解密相关错误。
-
-### 8. 企业微信使用方法
-
-应用配置成功后，在企业微信里给 NoBrainFog 应用发消息：
+如果日志里出现：
 
 ```text
-明天下午三点开会讨论项目进度
+errcode: 60020
+not allow to access from your ip
+from ip: x.x.x.x
 ```
 
-常用命令：
+去企业微信后台把这个 `from ip` 加入可信 IP / IP 白名单。
+
+大概路径：
 
 ```text
-/report 或 /r      查看任务列表
-/export 或 /e      导出任务内容
-/help 或 /h        显示帮助
-/undo              撤回最后一条任务
+应用管理 → 自建应用 → NoBrainFog → 开发者接口 / 企业可信 IP / 可信 IP
 ```
 
-## 🧵 同时运行 Discord + 企业微信
-
-推荐用两个 tmux session：
-
-### Discord session
+保存后重启 WeChat adapter：
 
 ```bash
-tmux new -s nbf-discord
+~/bots.sh restart nbf-wcbot
+```
+
+如果你的家庭公网 IP 变化，可能会再次出现 `60020`。看日志里的新 `from ip`，重新加入可信 IP 即可。
+
+### 7. 企业微信消息去重
+
+企业微信在 AI 响应慢、网络慢或回调返回不稳定时可能重试同一条消息。NoBrainFog 使用企业微信 `MsgId` 做轻量去重，避免同一条消息被重复写入 `todo.md`。
+
+默认去重 marker 保存在：
+
+```text
+/root/nbf-vault/.wechat_msg_dedupe/
+```
+
+也可以在 `wechat.env` 中自定义：
+
+```env
+WECHAT_DEDUPE_DIR=/root/nbf-vault/.wechat_msg_dedupe
+```
+
+这不是 `todo.md` 文件锁。它只负责拦截企业微信 webhook 重试导致的重复写入。
+
+## 常用命令
+
+Discord 和企业微信都支持这些核心命令：
+
+```text
+/report 或 /r 或 /rep       查看任务列表
+/export 或 /e 或 /exp       导出 todo.md 文本
+/undo                       撤回最后一条任务
+/done 2                     标记 #2 完成
+/done 关键词                按关键词完成任务
+/edit 2 新内容              修改任务描述
+/pri 2 P1                   修改优先级
+/priority 2 P1              修改优先级
+/due 2 2026-05-30           修改截止日期
+/deadline 2 2026-05-30      修改截止日期
+/due 2 none                 清空截止日期
+/memo 2 备注                修改备注
+/memo 2 none                清空备注
+/prior                      生成优先级建议
+/cbt 2                      对某个任务做 CBT 拆解
+/cbt all                    分析全部任务
+/yesucan                    生成鼓励/推进消息
+/help 或 /h 或 /admhelp      查看帮助
+```
+
+Discord 额外支持：
+
+```text
+/import                     上传 todo.md 替换当前任务文件
+```
+
+企业微信暂不支持语音转写。图片入口已接入基础 pipeline，但建议先以文字任务为主。
+
+## 同时运行 Discord + 企业微信
+
+推荐用两个 tmux session，例如你的自动化脚本可以启动：
+
+```text
+nbf-dcbot  → Discord adapter
+nbf-wcbot  → WeChat Work adapter
+```
+
+手动启动示例：
+
+```bash
+tmux new -s nbf-dcbot
 cd /root/NoBrainFog
 source .venv/bin/activate
 python main.py --env-file /root/nobrainfog-config/discord.env
 ```
 
-按 `Ctrl+B`，再按 `D`，可以把 session 放到后台。
-
-### WeChat session
-
 ```bash
-tmux new -s nbf-wechat
+tmux new -s nbf-wcbot
 cd /root/NoBrainFog
 source .venv/bin/activate
 python main.py --env-file /root/nobrainfog-config/wechat.env
 ```
 
-查看 session：
+查看：
 
 ```bash
 tmux ls
@@ -503,11 +386,11 @@ tmux ls
 重新进入：
 
 ```bash
-tmux attach -t nbf-discord
-tmux attach -t nbf-wechat
+tmux attach -t nbf-dcbot
+tmux attach -t nbf-wcbot
 ```
 
-## 🔄 rclone / Google Drive 同步建议
+## rclone / Google Drive 同步建议
 
 如果你已经配置了 rclone remote，例如：
 
@@ -537,20 +420,16 @@ rclone 负责把 /root/nbf-vault/todo.md 同步到 Google Drive
 外部编辑后再由 rclone 拉回本地
 ```
 
-注意：如果多个 adapter 或外部编辑同时写入同一个文件，未来最好给 `TodoHandler` 增加文件锁，避免极端情况下写入冲突。
-
-## 🛠️ 故障排除
+## 故障排除
 
 ### 启动时报 env 缺失
 
-确认你用的是新的显式启动方式：
+确认你使用的是显式启动方式：
 
 ```bash
 python main.py --env-file /root/nobrainfog-config/discord.env
 python main.py --env-file /root/nobrainfog-config/wechat.env
 ```
-
-不要再依赖根目录 `.env`。
 
 ### Discord bot 上线但不回复
 
@@ -558,19 +437,30 @@ python main.py --env-file /root/nobrainfog-config/wechat.env
 
 1. `TARGET_USER_ID` 是否是你的 Discord 用户 ID。
 2. 是否给 bot 发的是 DM。
-3. Developer Portal 里是否开启了 **MESSAGE CONTENT INTENT**。
-4. `DISCORD_TOKEN` 是否来自正确的 bot。
+3. Developer Portal 是否开启了 **MESSAGE CONTENT INTENT**。
+4. `DISCORD_TOKEN` 是否来自正确 bot。
 5. Python 控制台是否有异常。
 
 ### 企业微信 URL 验证失败
 
 检查：
 
-1. `python main.py --env-file /root/nobrainfog-config/wechat.env` 是否正在运行。
-2. Nginx 是否 reload 成功。
-3. `https://wechat.your-domain.com/wechat` 是否能访问到你的服务器。
-4. 企业微信页面的 Token / EncodingAESKey 是否和 `wechat.env` 完全一致。
-5. 是否有域名备案主体或企业主体关联要求。
+1. WeChat adapter 是否正在运行。
+2. `https://wechat.your-domain.com/wechat` 是否能访问到你的服务器。
+3. Token / EncodingAESKey 是否和 `wechat.env` 完全一致。
+4. Flask 日志是否有 signature mismatch、AES decrypt failed、Corp ID mismatch。
+5. 是否有企业微信域名备案主体或关联主体要求。
+
+### 企业微信能写入但不回复
+
+检查日志里是否有：
+
+```text
+errcode: 60020
+not allow to access from your ip
+```
+
+如果有，把日志里的 `from ip` 加入企业微信可信 IP。
 
 ### AI 处理失败
 
@@ -581,7 +471,7 @@ python main.py --env-file /root/nobrainfog-config/wechat.env
 3. `API_BASE` 是否适配你的模型服务。
 4. 服务器是否能访问对应 API。
 
-## 🔒 安全建议
+## 安全建议
 
 - 不要提交真实 env 文件。
 - 不要把 Discord token、企业微信 Secret、AI API Key 发到聊天里。
@@ -589,12 +479,14 @@ python main.py --env-file /root/nobrainfog-config/wechat.env
 - 定期轮换 Discord token 和企业微信 Secret。
 - `AUTHORIZED_USERS` 后续可以收紧，避免企业内所有人都能操作你的任务库。
 
-## 📄 文件说明
+## 文件说明
 
 ```text
 main.py                  # 显式读取 --env-file 并启动指定 adapter
 adapters/discord_bot.py  # Discord DM adapter
 adapters/wechat_work.py  # 企业微信 webhook adapter
+core/help_text.py        # Discord / WeChat 帮助文案
+core/idempotency.py      # 企业微信 webhook 重试去重
 core/ingest.py           # 统一输入入口
 core/handler.py          # todo.md 文件读写逻辑
 discord.env.example      # Discord 配置模板
