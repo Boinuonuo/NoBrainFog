@@ -69,20 +69,20 @@ body {
 }
 
 .support-copy {
-  text-align: center;
+  text-align: left;
 }
 
 .support-copy h2 {
   margin-bottom: 8px;
   font-size: clamp(1.75rem, 3vw, 2.65rem);
-  text-align: center;
+  text-align: left;
 }
 
 .support-copy p:last-child {
   margin-bottom: 0;
   color: var(--muted);
   line-height: 1.7;
-  text-align: center;
+  text-align: left;
 }
 
 .support-button {
@@ -97,6 +97,12 @@ body {
   .support-card {
     grid-template-columns: 1fr;
     justify-items: center;
+    text-align: center;
+  }
+
+  .support-copy,
+  .support-copy h2,
+  .support-copy p:last-child {
     text-align: center;
   }
 
