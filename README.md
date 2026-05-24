@@ -599,5 +599,4 @@ core/ingest.py           # 统一输入入口
 core/handler.py          # todo.md 文件读写逻辑
 discord.env.example      # Discord 配置模板
 wechat.env.example       # 企业微信配置模板
-SETUP_WECHAT_WORK.md     # 旧版企业微信单独教程，内容已合并到 README
 ```
