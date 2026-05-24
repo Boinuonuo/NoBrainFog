@@ -60,8 +60,17 @@ def check_env():
             "WECHAT_TOKEN",
             "WECHAT_ENCODING_AES_KEY",
         ])
+    elif adapter_type == "email_imap":
+        required_vars.extend([
+            "EMAIL_IMAP_HOST",
+            "EMAIL_USERNAME",
+            "EMAIL_PASSWORD",
+        ])
     else:
-        print(f"❌ Invalid ADAPTER_TYPE: {adapter_type}. Use 'discord' or 'wechat_work'.")
+        print(
+            f"❌ Invalid ADAPTER_TYPE: {adapter_type}. "
+            "Use 'discord', 'wechat_work', or 'email_imap'."
+        )
         return False
 
     # AI 驱动配置检查
@@ -103,6 +112,16 @@ def build_config():
         "WECHAT_ENCODING_AES_KEY": os.getenv("WECHAT_ENCODING_AES_KEY"),
         "WECHAT_DEDUPE_DIR": os.getenv("WECHAT_DEDUPE_DIR"),
         "AUTHORIZED_USERS": read_csv_env("AUTHORIZED_USERS"),
+
+        # Email IMAP 配置
+        "EMAIL_IMAP_HOST": os.getenv("EMAIL_IMAP_HOST"),
+        "EMAIL_IMAP_PORT": os.getenv("EMAIL_IMAP_PORT", "993"),
+        "EMAIL_USERNAME": os.getenv("EMAIL_USERNAME"),
+        "EMAIL_PASSWORD": os.getenv("EMAIL_PASSWORD"),
+        "EMAIL_MAILBOX": os.getenv("EMAIL_MAILBOX", "INBOX"),
+        "EMAIL_POLL_SECONDS": os.getenv("EMAIL_POLL_SECONDS", "60"),
+        "EMAIL_PROCESSED_FOLDER": os.getenv("EMAIL_PROCESSED_FOLDER", ""),
+        "EMAIL_MAX_MESSAGES_PER_POLL": os.getenv("EMAIL_MAX_MESSAGES_PER_POLL", "10"),
     }
 
 
@@ -125,6 +144,8 @@ def main():
         bot.run(os.getenv("DISCORD_TOKEN"))
     elif adapter_type == "wechat_work":
         bot.run(host="0.0.0.0", port=8080)
+    elif adapter_type == "email_imap":
+        bot.run()
 
 
 if __name__ == "__main__":
