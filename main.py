@@ -124,6 +124,8 @@ def build_config():
         "EMAIL_PROCESSED_FOLDER": os.getenv("EMAIL_PROCESSED_FOLDER", ""),
         "EMAIL_MAX_MESSAGES_PER_POLL": os.getenv("EMAIL_MAX_MESSAGES_PER_POLL", "10"),
         "EMAIL_DEDUPE_DIR": os.getenv("EMAIL_DEDUPE_DIR"),
+        "EMAIL_ALLOWED_SENDERS": os.getenv("EMAIL_ALLOWED_SENDERS", ""),
+        "EMAIL_ALLOWED_DOMAINS": os.getenv("EMAIL_ALLOWED_DOMAINS", ""),
         "NOTIFY_DISCORD_ENABLED": os.getenv("NOTIFY_DISCORD_ENABLED", "false"),
     }
 
