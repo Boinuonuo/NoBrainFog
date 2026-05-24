@@ -50,7 +50,7 @@ const translations = {
     "nav.exports": "导出",
     "language.aria": "语言切换",
     "hero.eyebrow": "AI 驱动的个人任务入口",
-    "hero.title": "把心血来潮<br>灵机一动，<br>变成一个真正可管理的任务库。",
+    "hero.title": "把心血来潮<br>和灵机一动<br><br>变成真正可管理的任务库",
     "hero.text": "NoBrainFog 从 Discord 或企业微信接收零散想法，把它们整理成结构化 Markdown 任务，并保持真正的数据层足够简单：一个本地 <code>todo.md</code> 文件。",
     "hero.github": "查看 GitHub",
     "hero.exports": "查看导出能力",
