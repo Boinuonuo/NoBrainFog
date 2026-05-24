@@ -7,9 +7,9 @@ NoBrainFog is an AI-powered personal task intake system. It turns fragmented tho
 Chat platforms are only adapters. The real data layer is local, portable, and sync-friendly.
 
 ```text
-Discord / WeChat Work
+Discord / WeChat Work / CLI
         ↓
-NoBrainFog adapter process
+NoBrainFog adapter or toolkit
         ↓
 /root/nbf-vault/todo.md
         ↓
@@ -23,6 +23,7 @@ Markdown / Excel / rclone sync
 - Use separate private config files for Discord and WeChat Work.
 - Store all tasks in one shared `todo.md`.
 - Export tasks as Markdown or formatted Excel `.xlsx` files.
+- Use the CLI toolkit for local add/report/edit/export/lint workflows.
 - Sync the task file with rclone / Google Drive.
 - Manage tasks with commands such as `/report`, `/done`, `/edit`, `/pri`, `/due`, `/memo`, `/prior`, `/cbt`, and `/yesucan`.
 
@@ -67,9 +68,10 @@ Use the example files as templates:
 ```text
 discord.env.example
 wechat.env.example
+cli.env.example
 ```
 
-Both real config files should point to the same `MD_PATH`.
+All real config files should point to the same `MD_PATH`.
 
 ## Documentation
 
@@ -105,6 +107,31 @@ localhost:8080
 ```
 
 WeChat Work may retry callbacks when AI responses are slow. NoBrainFog uses WeChat `MsgId` to prevent duplicate writes.
+
+## CLI toolkit
+
+The CLI toolkit is a local interface for server-side workflows. It is not a long-running adapter.
+
+Create a config file first:
+
+```bash
+cp cli.env.example /root/nobrainfog-config/cli.env
+```
+
+Common usage:
+
+```bash
+python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env report
+python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env add "Check the insurance bill"
+python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env done 2
+python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env pri 2 P1
+python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env due 2 2026-05-30
+python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env memo 2 "waiting for reply"
+python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env excel --output /tmp/nobrainfog-todo.xlsx
+python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env lint
+```
+
+Only `add` requires AI credentials. Most other commands only need `MD_PATH`.
 
 ## Common commands
 
@@ -151,6 +178,7 @@ Python compile check
 C todo lint compile check
 Excel exporter smoke test
 C lint smoke test
+CLI toolkit smoke test
 ```
 
 ## Files
@@ -164,6 +192,7 @@ core/idempotency.py             # WeChat webhook retry dedupe
 core/ingest.py                  # unified input ingestion
 core/handler.py                 # todo.md read/write logic
 core/excel_exporter.py          # Excel workbook export logic
+tools/nbf_cli.py                # local NoBrainFog CLI toolkit
 tools/export_todo_excel.py      # local todo.md → .xlsx CLI
 tools/c/nbf-todo-lint.c         # optional C todo.md table linter
 web/landing/                    # small static project page
