@@ -1,0 +1,49 @@
+body {
+  font-size: 15.5px;
+}
+
+.nav-links,
+.site-footer {
+  font-size: 0.9rem;
+}
+
+.hero-text {
+  font-size: 1.02rem;
+}
+
+.button {
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 0.92rem;
+}
+
+.button.soft {
+  border-color: rgba(215, 131, 238, 0.36);
+  background: rgba(186, 85, 211, 0.09);
+  color: var(--muted);
+}
+
+.button.soft:hover {
+  border-color: rgba(215, 131, 238, 0.72);
+  color: var(--text);
+}
+
+.terminal-card pre {
+  font-size: clamp(0.88rem, 1.9vw, 1.02rem);
+}
+
+.feature-card p,
+.section-card p,
+.copy-command span {
+  font-size: 0.94rem;
+}
+
+.copy-command {
+  padding: 14px 15px;
+}
+
+@media (max-width: 860px) {
+  body {
+    font-size: 15px;
+  }
+}
