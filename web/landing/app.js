@@ -57,7 +57,7 @@ const translations = {
     "terminal.aria": "NoBrainFog 示例流程",
     "terminal.flow": "Discord / 企业微信\n        ↓\nNoBrainFog\n        ↓\nTodo.md\n        ↓\nMarkdown / Excel / 同步",
     "flow.eyebrow": "系统流程",
-    "flow.title": "可替换接口，共同管理同一份任务",
+    "flow.title": "可替换接口，同步管理你的任务",
     "flow.aria": "NoBrainFog 系统流程",
     "flow.node1": "Discord 私信",
     "flow.node4": "Excel / 云端",
