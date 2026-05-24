@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="NoBrainFog turns fragmented thoughts from Discord or WeChat Work into one portable Markdown task vault." />
+  <title>NoBrainFog — AI Task Intake System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="NoBrainFog home">
+        <span class="brand-mark">🧠</span>
+        <span>NoBrainFog</span>
+      </a>
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="#flow">Flow</a>
+        <a href="#features">Features</a>
+        <a href="#exports">Exports</a>
+        <a href="https://github.com/Boinuonuo/NoBrainFog">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero section-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">AI-powered personal task intake</p>
+          <h1>Turn messy thoughts into one portable task vault.</h1>
+          <p class="hero-text">
+            NoBrainFog captures fragmented ideas from Discord or WeChat Work,
+            organizes them into structured Markdown tasks, and keeps the real data
+            layer simple: one local <code>todo.md</code> file.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="https://github.com/Boinuonuo/NoBrainFog">View on GitHub</a>
+            <a class="button secondary" href="#exports">See exports</a>
+          </div>
+        </div>
+
+        <div class="terminal-card" aria-label="NoBrainFog example command output">
+          <div class="terminal-topbar">
+            <span></span><span></span><span></span>
+          </div>
+          <pre><code>Discord / WeChat Work
+        ↓
+NoBrainFog adapter
+        ↓
+/root/nbf-vault/todo.md
+        ↓
+Markdown / Excel / Sync</code></pre>
+        </div>
+      </section>
+
+      <section id="flow" class="section-card">
+        <div class="section-heading">
+          <p class="eyebrow">System flow</p>
+          <h2>Adapters are replaceable. The vault stays yours.</h2>
+        </div>
+        <div class="flow-lane" aria-label="NoBrainFog system flow">
+          <div class="flow-node">Discord DM</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node">NoBrainFog</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node">todo.md</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node">Excel / Drive</div>
+        </div>
+      </section>
+
+      <section id="features" class="feature-grid">
+        <article class="feature-card">
+          <span class="feature-icon">💬</span>
+          <h3>Capture anywhere</h3>
+          <p>Send plain text, screenshots, or fragments. NoBrainFog turns them into structured task rows.</p>
+        </article>
+        <article class="feature-card">
+          <span class="feature-icon">📋</span>
+          <h3>Manage by command</h3>
+          <p>Use commands like <code>/report</code>, <code>/done</code>, <code>/edit</code>, <code>/pri</code>, <code>/due</code>, and <code>/memo</code>.</p>
+        </article>
+        <article class="feature-card">
+          <span class="feature-icon">🧘</span>
+          <h3>Think with AI</h3>
+          <p>Generate priority analysis, CBT breakdowns, and motivational nudges when tasks feel stuck.</p>
+        </article>
+      </section>
+
+      <section id="exports" class="section-card export-section">
+        <div>
+          <p class="eyebrow">Portable output</p>
+          <h2>Markdown first. Excel when you need a spreadsheet.</h2>
+          <p>
+            The core vault remains a simple <code>todo.md</code>, but Discord can also export
+            a formatted <code>.xlsx</code> file for sorting, filtering, archiving, or sharing.
+          </p>
+        </div>
+        <div class="command-list">
+          <button class="copy-command" data-command="/export"><code>/export</code><span>Export todo.md</span></button>
+          <button class="copy-command" data-command="/excel"><code>/excel</code><span>Export Excel</span></button>
+          <button class="copy-command" data-command="/xlsx"><code>/xlsx</code><span>Excel alias</span></button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>NoBrainFog keeps the task layer local, readable, and sync-friendly.</span>
+      <span id="copy-status" aria-live="polite"></span>
+    </footer>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
