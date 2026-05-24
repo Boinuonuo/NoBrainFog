@@ -101,6 +101,7 @@ def build_config():
         "GEMINI_API_KEY": os.getenv("GEMINI_API_KEY"),
         "GEMINI_MODEL": os.getenv("GEMINI_MODEL"),
         "TARGET_USER_ID": os.getenv("TARGET_USER_ID"),
+        "DISCORD_TOKEN": os.getenv("DISCORD_TOKEN"),
         "MD_PATH": os.getenv("MD_PATH"),
         "CATEGORIES": os.getenv("CATEGORIES", "Work,Life"),
 
@@ -122,6 +123,8 @@ def build_config():
         "EMAIL_POLL_SECONDS": os.getenv("EMAIL_POLL_SECONDS", "60"),
         "EMAIL_PROCESSED_FOLDER": os.getenv("EMAIL_PROCESSED_FOLDER", ""),
         "EMAIL_MAX_MESSAGES_PER_POLL": os.getenv("EMAIL_MAX_MESSAGES_PER_POLL", "10"),
+        "EMAIL_DEDUPE_DIR": os.getenv("EMAIL_DEDUPE_DIR"),
+        "NOTIFY_DISCORD_ENABLED": os.getenv("NOTIFY_DISCORD_ENABLED", "false"),
     }
 
 
