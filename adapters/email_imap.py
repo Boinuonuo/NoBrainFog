@@ -1,11 +1,16 @@
 # adapters/email_imap.py
 import imaplib
+import tempfile
 import time
 from email.utils import parseaddr
 from pathlib import Path
 
+from core.email_commands import EMAIL_HELP_TEXT, parse_email_command
 from core.email_dedupe import EmailDedupeStore
 from core.email_parser import parse_email_bytes
+from core.email_sender import EmailSender
+from core.excel_exporter import export_tasks_to_excel
+from core.handler import TodoHandler
 from core.ingest import IngestService
 from core.notifier import (
     DiscordDMNotifier,
@@ -22,8 +27,9 @@ class EmailIMAPAdapter:
     - search unread emails
     - parse subject/from/body
     - skip non-whitelisted senders when a whitelist is configured
+    - handle email commands such as /ping, /help, /report, /export, /excel, /xlsx
     - skip messages already recorded in the local dedupe store
-    - send clean text into IngestService
+    - send clean text into IngestService for normal task capture
     - notify Discord when configured
     - mark successful messages as seen
     - optionally move successful messages to a processed folder
@@ -32,6 +38,8 @@ class EmailIMAPAdapter:
     def __init__(self, config):
         self.config = config
         self.ingest = IngestService(config)
+        self.handler = TodoHandler(config.get("MD_PATH"))
+        self.email_sender = EmailSender(config)
         self.notifier = DiscordDMNotifier.from_config(config)
 
         self.host = config.get("EMAIL_IMAP_HOST")
@@ -51,6 +59,7 @@ class EmailIMAPAdapter:
         print(f"Mailbox: {self.username} / {self.mailbox}")
         print(f"Poll interval: {self.poll_seconds}s")
         print(f"Discord notification: {'enabled' if self.notifier.enabled else 'disabled'}")
+        print(f"SMTP replies: {'enabled' if self.email_sender.enabled else 'disabled'}")
         if self.has_sender_whitelist():
             print("Sender whitelist: enabled")
         else:
@@ -127,6 +136,15 @@ class EmailIMAPAdapter:
             mail.store(message_id, "+FLAGS", "\\Seen")
             return False
 
+        command = parse_email_command(parsed.subject, parsed.body)
+        if command:
+            print(f"📩 Handling email command {command.name}: {display_subject} <{display_sender}>")
+            self.handle_email_command(command, reply_to=normalized_sender or display_sender)
+            mail.store(message_id, "+FLAGS", "\\Seen")
+            if self.processed_folder:
+                self.move_to_processed(mail, message_id)
+            return True
+
         message_uid = self.fetch_uid(mail, message_id)
         dedupe_key = self.dedupe.make_key(
             message_id=parsed.message_id,
@@ -160,6 +178,58 @@ class EmailIMAPAdapter:
             self.move_to_processed(mail, message_id)
 
         return True
+
+    def handle_email_command(self, command, reply_to):
+        if command.name == "/ping":
+            self.email_sender.send_text(
+                to=reply_to,
+                subject="NoBrainFog Email: pong",
+                body="pong ✅\n\nNoBrainFog Email adapter is running.",
+            )
+            return
+
+        if command.name == "/help":
+            self.email_sender.send_text(
+                to=reply_to,
+                subject="NoBrainFog Email Commands",
+                body=EMAIL_HELP_TEXT,
+            )
+            return
+
+        if command.name == "/report":
+            self.email_sender.send_text(
+                to=reply_to,
+                subject="NoBrainFog Task Report",
+                body=self.handler.format_report(),
+            )
+            return
+
+        if command.name == "/export":
+            md_path = Path(self.config.get("MD_PATH")).expanduser().resolve()
+            self.email_sender.send_with_attachment(
+                to=reply_to,
+                subject="NoBrainFog export: todo.md",
+                body="Attached is your current NoBrainFog todo.md export.",
+                attachment_path=md_path,
+                filename="todo.md",
+            )
+            return
+
+        if command.name in {"/excel", "/xlsx"}:
+            tasks = self.handler.get_tasks()
+            with tempfile.TemporaryDirectory(prefix="nbf-email-export-") as temp_dir:
+                output_path = Path(temp_dir) / "nobrainfog-todo.xlsx"
+                export_tasks_to_excel(tasks, output_path)
+                self.email_sender.send_with_attachment(
+                    to=reply_to,
+                    subject="NoBrainFog export: Excel workbook",
+                    body="Attached is your current NoBrainFog Excel export.",
+                    attachment_path=output_path,
+                    filename="nobrainfog-todo.xlsx",
+                )
+            return
+
+        raise ValueError(f"Unsupported email command: {command.name}")
 
     def fetch_uid(self, mail, message_id):
         status, data = mail.fetch(message_id, "(UID)")
