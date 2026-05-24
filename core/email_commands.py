@@ -8,13 +8,18 @@ email body wins. If the body is empty, the subject is checked as a fallback.
 from dataclasses import dataclass
 
 
-SUPPORTED_EMAIL_COMMANDS = {
-    "/export",
-    "/excel",
-    "/xlsx",
-    "/report",
-    "/help",
-    "/ping",
+EMAIL_COMMAND_ALIASES = {
+    "/export": "/export",
+    "/e": "/export",
+    "/exp": "/export",
+    "/excel": "/excel",
+    "/xlsx": "/excel",
+    "/report": "/report",
+    "/r": "/report",
+    "/rep": "/report",
+    "/help": "/help",
+    "/h": "/help",
+    "/ping": "/ping",
 }
 
 
@@ -29,16 +34,16 @@ NoBrainFog Email Commands
 
 Send one of these commands from an allowed sender:
 
-/export
+/export, /e, or /exp
   Reply with todo.md as an attachment.
 
 /excel or /xlsx
   Reply with a formatted Excel workbook as an attachment.
 
-/report
+/report, /r, or /rep
   Reply with the current task report as email text.
 
-/help
+/help or /h
   Reply with this help text.
 
 /ping
@@ -54,8 +59,9 @@ def parse_email_command(subject, body):
         return None
 
     command = candidate.strip().split()[0].lower()
-    if command in SUPPORTED_EMAIL_COMMANDS:
-        return EmailCommand(name=command, raw=candidate.strip())
+    canonical_command = EMAIL_COMMAND_ALIASES.get(command)
+    if canonical_command:
+        return EmailCommand(name=canonical_command, raw=candidate.strip())
 
     return None
 
