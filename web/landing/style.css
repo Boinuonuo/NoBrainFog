@@ -308,6 +308,43 @@ h3 {
   background: rgba(186, 85, 211, 0.16);
 }
 
+.other-tool-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 22px;
+  align-items: center;
+  margin: 24px 0;
+  padding: clamp(22px, 4vw, 34px);
+  border: 1px solid rgba(215, 131, 238, 0.35);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(186, 85, 211, 0.22), transparent 24rem),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.045));
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.other-tool-badge {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.18);
+  font-size: 1.6rem;
+}
+
+.other-tool-copy p {
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.other-tool-button {
+  white-space: nowrap;
+}
+
 .site-footer {
   display: flex;
   justify-content: space-between;
@@ -334,8 +371,13 @@ h3 {
 
   .section-grid,
   .export-section,
-  .feature-grid {
+  .feature-grid,
+  .other-tool-card {
     grid-template-columns: 1fr;
+  }
+
+  .other-tool-button {
+    width: 100%;
   }
 
   .hero {
