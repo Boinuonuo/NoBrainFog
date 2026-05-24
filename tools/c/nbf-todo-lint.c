@@ -238,7 +238,7 @@ int main(int argc, char *argv[]) {
         printf("\nStatus: issues found.\n");
         exit_code = 1;
     } else {
-        printf("\nStatus: clean.\n");
+        printf("\nStatus: clean. ✅\n");
         exit_code = 0;
     }
 
