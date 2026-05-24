@@ -32,18 +32,68 @@
 }
 
 html[lang="zh"] body {
-  font-family: Inter, "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", system-ui, sans-serif;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
 }
 
 html[lang="zh"] h1,
 html[lang="zh"] h2,
 html[lang="zh"] h3 {
-  letter-spacing: -0.04em;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+html[lang="zh"] h1 {
+  max-width: 680px;
+  font-size: clamp(3.2rem, 6vw, 5rem);
+  line-height: 1.05;
+  letter-spacing: -0.055em;
+}
+
+html[lang="zh"] h2 {
+  max-width: 760px;
+  font-size: clamp(2.15rem, 3.6vw, 3.9rem);
+  line-height: 1.08;
+}
+
+html[lang="zh"] .hero-text,
+html[lang="zh"] .section-card p,
+html[lang="zh"] .feature-card p {
+  line-height: 1.85;
+  letter-spacing: 0.01em;
+}
+
+html[lang="zh"] .eyebrow {
+  letter-spacing: 0.12em;
+}
+
+html[lang="zh"] .section-grid {
+  grid-template-columns: minmax(0, 1.12fr) minmax(340px, 0.88fr);
+}
+
+html[lang="zh"] .terminal-card pre {
+  font-size: clamp(0.92rem, 1.8vw, 1.05rem);
+  line-height: 1.95;
+}
+
+html[lang="zh"] .flow-node,
+html[lang="zh"] .button,
+html[lang="zh"] .copy-command {
+  letter-spacing: -0.01em;
 }
 
 @media (max-width: 940px) {
   .header-actions {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+@media (max-width: 860px) {
+  html[lang="zh"] .section-grid {
+    grid-template-columns: 1fr;
+  }
+
+  html[lang="zh"] h1 {
+    font-size: clamp(2.8rem, 13vw, 4.2rem);
   }
 }
