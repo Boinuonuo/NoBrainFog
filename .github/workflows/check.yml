@@ -100,3 +100,31 @@ jobs:
           assert "Book dentist appointment" in parsed_html.body
           assert "Body:" in parsed_html.ingest_text
           PY
+
+      - name: Smoke test email command aliases
+        run: |
+          python - <<'PY'
+          from core.email_commands import parse_email_command
+
+          cases = {
+              "/export": "/export",
+              "/e": "/export",
+              "/exp": "/export",
+              "/excel": "/excel",
+              "/xlsx": "/excel",
+              "/report": "/report",
+              "/r": "/report",
+              "/rep": "/report",
+              "/help": "/help",
+              "/h": "/help",
+              "/ping": "/ping",
+          }
+
+          for raw, expected in cases.items():
+              command = parse_email_command(subject=raw, body="")
+              assert command is not None, raw
+              assert command.name == expected, (raw, command.name, expected)
+
+          assert parse_email_command(subject="normal task", body="") is None
+          assert parse_email_command(subject="/export", body="normal body wins") is None
+          PY
