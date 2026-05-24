@@ -2,14 +2,14 @@
 
 [English](README.md) | 中文
 
-NoBrainFog 是一个 AI 驱动的个人任务入口系统。它把你在 Discord 或企业微信里发来的碎片化想法整理成统一的 Markdown `todo.md`。
+NoBrainFog 是一个 AI 驱动的个人任务入口系统。它把你在 Discord、企业微信或命令行里的碎片化想法整理成统一的 Markdown `todo.md`。
 
-核心思想：聊天平台只是入口，真正的数据层是同一个 `todo.md`。
+核心思想：聊天平台和 CLI 都只是入口，真正的数据层是同一个 `todo.md`。
 
 ```text
-Discord / WeChat Work
+Discord / WeChat Work / CLI
         ↓
-NoBrainFog adapter process
+NoBrainFog adapter or toolkit
         ↓
 /root/nbf-vault/todo.md
         ↓
@@ -23,6 +23,7 @@ Markdown / Excel / rclone sync
 - 每个 adapter 使用独立私有配置文件。
 - 所有任务写入同一个 `todo.md`。
 - 支持导出 Markdown，也支持 Discord 直接导出格式化 Excel `.xlsx`。
+- 支持 CLI toolkit，在服务器命令行直接 add / report / edit / export / lint。
 - 可以通过 rclone / Google Drive 同步任务文件。
 - 支持 `/report`、`/done`、`/edit`、`/pri`、`/due`、`/memo`、`/prior`、`/cbt`、`/yesucan` 等命令。
 
@@ -33,6 +34,7 @@ Markdown / Excel / rclone sync
 /root/nobrainfog-config/
   discord.env                      # Discord 私有配置，不进 Git
   wechat.env                       # 企业微信私有配置，不进 Git
+  cli.env                          # CLI toolkit 配置，不进 Git
 /root/nbf-vault/
   todo.md                          # 唯一真实任务文件，可被 rclone 同步
 ```
@@ -84,9 +86,10 @@ mkdir -p /root/nbf-vault
 
 cp /root/NoBrainFog/discord.env.example /root/nobrainfog-config/discord.env
 cp /root/NoBrainFog/wechat.env.example /root/nobrainfog-config/wechat.env
+cp /root/NoBrainFog/cli.env.example /root/nobrainfog-config/cli.env
 ```
 
-两份真实 env 都建议指向同一个任务文件：
+多份真实 env 都建议指向同一个任务文件：
 
 ```env
 MD_PATH=/root/nbf-vault/todo.md
@@ -331,6 +334,31 @@ WECHAT_DEDUPE_DIR=/root/nbf-vault/.wechat_msg_dedupe
 
 这不是 `todo.md` 文件锁。它只负责拦截企业微信 webhook 重试导致的重复写入。
 
+## CLI toolkit
+
+CLI toolkit 是本地命令行入口，不是常驻 bot。它适合服务器 shell、cron、alias 或临时维护任务。
+
+先复制配置：
+
+```bash
+cp /root/NoBrainFog/cli.env.example /root/nobrainfog-config/cli.env
+```
+
+常用命令：
+
+```bash
+python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env report
+python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env add "查一下保险账单"
+python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env done 2
+python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env pri 2 P1
+python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env due 2 2026-05-30
+python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env memo 2 "等对方回复"
+python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env excel --output /tmp/nobrainfog-todo.xlsx
+python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env lint
+```
+
+只有 `add` 需要 AI credentials。大部分本地管理命令只需要 `MD_PATH`。
+
 ## 常用命令
 
 Discord 和企业微信都支持这些核心命令：
@@ -391,6 +419,7 @@ Python compile check
 C todo lint compile check
 Excel exporter smoke test
 C lint smoke test
+CLI toolkit smoke test
 ```
 
 ## 同时运行 Discord + 企业微信
@@ -457,6 +486,7 @@ gdrive:NoBrainFog/
 ```text
 Discord adapter 写 /root/nbf-vault/todo.md
 WeChat adapter 写 /root/nbf-vault/todo.md
+CLI toolkit 也写 /root/nbf-vault/todo.md
 rclone 负责把 /root/nbf-vault/todo.md 同步到 Google Drive
 外部编辑后再由 rclone 拉回本地
 ```
@@ -531,6 +561,7 @@ core/idempotency.py             # 企业微信 webhook 重试去重
 core/ingest.py                  # 统一输入入口
 core/handler.py                 # todo.md 文件读写逻辑
 core/excel_exporter.py          # Excel 导出逻辑
+tools/nbf_cli.py                # 本地 NoBrainFog CLI toolkit
 tools/export_todo_excel.py      # 本地 todo.md → .xlsx CLI
 tools/c/nbf-todo-lint.c         # 可选 C 版 todo.md 表格检查器
 web/landing/                    # 简单项目页
