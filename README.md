@@ -1,5 +1,7 @@
 # 🧠 NoBrainFog
 
+中文 | [English](README.en.md)
+
 NoBrainFog 是一个 AI 驱动的个人任务入口系统。它把你在 Discord 或企业微信里发来的碎片化想法整理成统一的 Markdown `todo.md`。
 
 核心思想：聊天平台只是入口，真正的数据层是同一个 `todo.md`。
