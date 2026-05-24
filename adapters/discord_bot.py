@@ -132,6 +132,7 @@ class NoBrainFogBot(discord.Client):
         embed = discord.Embed(
             title=DISCORD_HELP_EMBED["title"],
             description=DISCORD_HELP_EMBED["description"],
+            color=DISCORD_HELP_EMBED.get("color", 0xBA55D3),
         )
         for field in DISCORD_HELP_EMBED["fields"]:
             embed.add_field(
