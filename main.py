@@ -101,6 +101,7 @@ def build_config():
         "WECHAT_AGENT_ID": os.getenv("WECHAT_AGENT_ID"),
         "WECHAT_TOKEN": os.getenv("WECHAT_TOKEN"),
         "WECHAT_ENCODING_AES_KEY": os.getenv("WECHAT_ENCODING_AES_KEY"),
+        "WECHAT_DEDUPE_DIR": os.getenv("WECHAT_DEDUPE_DIR"),
         "AUTHORIZED_USERS": read_csv_env("AUTHORIZED_USERS"),
     }
 
