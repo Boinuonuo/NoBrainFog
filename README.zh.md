@@ -13,8 +13,18 @@ NoBrainFog adapter process
         ↓
 /root/nbf-vault/todo.md
         ↓
-rclone / Google Drive sync
+Markdown / Excel / rclone sync
 ```
+
+## 功能亮点
+
+- 把碎片想法整理成结构化 Markdown 任务。
+- Discord / 企业微信共用同一套核心逻辑。
+- 每个 adapter 使用独立私有配置文件。
+- 所有任务写入同一个 `todo.md`。
+- 支持导出 Markdown，也支持 Discord 直接导出格式化 Excel `.xlsx`。
+- 可以通过 rclone / Google Drive 同步任务文件。
+- 支持 `/report`、`/done`、`/edit`、`/pri`、`/due`、`/memo`、`/prior`、`/cbt`、`/yesucan` 等命令。
 
 ## 推荐目录结构
 
@@ -350,9 +360,38 @@ Discord 额外支持：
 
 ```text
 /import                     上传 todo.md 替换当前任务文件
+/excel 或 /xlsx             导出格式化 Excel 文件
 ```
 
 企业微信暂不支持语音转写。图片入口已接入基础 pipeline，但建议先以文字任务为主。
+
+## 本地工具
+
+命令行导出 Excel：
+
+```bash
+python tools/export_todo_excel.py \
+  --input /root/nbf-vault/todo.md \
+  --output /tmp/nobrainfog-todo.xlsx
+```
+
+运行可选 C 版任务表检查器：
+
+```bash
+gcc tools/c/nbf-todo-lint.c -o /tmp/nbf-todo-lint
+/tmp/nbf-todo-lint /root/nbf-vault/todo.md
+```
+
+## 自动检查
+
+GitHub Actions 会在 push 和 pull request 时运行基础检查：
+
+```text
+Python compile check
+C todo lint compile check
+Excel exporter smoke test
+C lint smoke test
+```
 
 ## 同时运行 Discord + 企业微信
 
@@ -484,13 +523,16 @@ not allow to access from your ip
 ## 文件说明
 
 ```text
-main.py                  # 显式读取 --env-file 并启动指定 adapter
-adapters/discord_bot.py  # Discord DM adapter
-adapters/wechat_work.py  # 企业微信 webhook adapter
-core/help_text.py        # Discord / WeChat 帮助文案
-core/idempotency.py      # 企业微信 webhook 重试去重
-core/ingest.py           # 统一输入入口
-core/handler.py          # todo.md 文件读写逻辑
-discord.env.example      # Discord 配置模板
-wechat.env.example       # 企业微信配置模板
+main.py                         # 显式读取 --env-file 并启动指定 adapter
+adapters/discord_bot.py         # Discord DM adapter
+adapters/wechat_work.py         # 企业微信 webhook adapter
+core/help_text.py               # Discord / WeChat 帮助文案
+core/idempotency.py             # 企业微信 webhook 重试去重
+core/ingest.py                  # 统一输入入口
+core/handler.py                 # todo.md 文件读写逻辑
+core/excel_exporter.py          # Excel 导出逻辑
+tools/export_todo_excel.py      # 本地 todo.md → .xlsx CLI
+tools/c/nbf-todo-lint.c         # 可选 C 版 todo.md 表格检查器
+web/landing/                    # 简单项目页
+.github/workflows/check.yml     # CI 检查
 ```
