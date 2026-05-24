@@ -2,19 +2,28 @@
 import imaplib
 import time
 from email.utils import parseaddr
+from pathlib import Path
 
+from core.email_dedupe import EmailDedupeStore
 from core.email_parser import parse_email_bytes
 from core.ingest import IngestService
+from core.notifier import (
+    DiscordDMNotifier,
+    format_email_failure_notification,
+    format_email_success_notification,
+)
 
 
 class EmailIMAPAdapter:
     """
     Polls an IMAP inbox and turns unread emails into NoBrainFog tasks.
 
-    This adapter intentionally keeps the first version simple:
+    Flow:
     - search unread emails
     - parse subject/from/body
+    - skip messages already recorded in the local dedupe store
     - send clean text into IngestService
+    - notify Discord when configured
     - mark successful messages as seen
     - optionally move successful messages to a processed folder
     """
@@ -22,6 +31,7 @@ class EmailIMAPAdapter:
     def __init__(self, config):
         self.config = config
         self.ingest = IngestService(config)
+        self.notifier = DiscordDMNotifier.from_config(config)
 
         self.host = config.get("EMAIL_IMAP_HOST")
         self.port = int(config.get("EMAIL_IMAP_PORT") or 993)
@@ -31,11 +41,13 @@ class EmailIMAPAdapter:
         self.poll_seconds = int(config.get("EMAIL_POLL_SECONDS") or 60)
         self.processed_folder = (config.get("EMAIL_PROCESSED_FOLDER") or "").strip()
         self.max_messages_per_poll = int(config.get("EMAIL_MAX_MESSAGES_PER_POLL") or 10)
+        self.dedupe = EmailDedupeStore(self.resolve_dedupe_dir(config))
 
     def run(self):
         print("📬 NoBrainFog Email IMAP adapter started")
         print(f"Mailbox: {self.username} / {self.mailbox}")
         print(f"Poll interval: {self.poll_seconds}s")
+        print(f"Discord notification: {'enabled' if self.notifier.enabled else 'disabled'}")
 
         while True:
             try:
@@ -101,16 +113,56 @@ class EmailIMAPAdapter:
         sender_name, sender_email = parseaddr(parsed.sender)
         display_sender = sender_email or sender_name or parsed.sender or "unknown sender"
         display_subject = parsed.subject or "(no subject)"
+        message_uid = self.fetch_uid(mail, message_id)
+        dedupe_key = self.dedupe.make_key(
+            message_id=parsed.message_id,
+            uid=message_uid,
+            subject=parsed.subject,
+            sender=parsed.sender,
+        )
+
+        if self.dedupe.has_seen(dedupe_key):
+            print(f"↪️ Skipping already processed email: {display_subject} <{display_sender}>")
+            mail.store(message_id, "+FLAGS", "\\Seen")
+            return False
 
         print(f"📨 Capturing email: {display_subject} <{display_sender}>")
-        row = self.ingest.capture_task(parsed.ingest_text, source="email")
+
+        try:
+            row = self.ingest.capture_task(parsed.ingest_text, source="email")
+        except Exception as exc:
+            self.notify_failure(display_subject, display_sender, exc)
+            raise
+
+        self.dedupe.mark_seen(
+            dedupe_key,
+            note=f"subject={display_subject}\nfrom={display_sender}\nmessage_id={parsed.message_id}\nuid={message_uid}\n",
+        )
         print(f"✨ Saved email task: {row}")
+        self.notify_success(display_subject, display_sender, row)
 
         mail.store(message_id, "+FLAGS", "\\Seen")
         if self.processed_folder:
             self.move_to_processed(mail, message_id)
 
         return True
+
+    def fetch_uid(self, mail, message_id):
+        status, data = mail.fetch(message_id, "(UID)")
+        if status != "OK" or not data:
+            return None
+
+        for item in data:
+            if not isinstance(item, tuple):
+                continue
+            header = item[0]
+            if isinstance(header, bytes):
+                header = header.decode(errors="replace")
+            marker = "UID "
+            if marker in header:
+                return header.split(marker, 1)[1].split(")", 1)[0].strip()
+
+        return None
 
     def extract_raw_message(self, fetch_data):
         for item in fetch_data:
@@ -135,3 +187,23 @@ class EmailIMAPAdapter:
 
         mail.create(self.processed_folder)
         self.select_mailbox(mail)
+
+    def notify_success(self, subject, sender, row):
+        try:
+            self.notifier.send(format_email_success_notification(subject, sender, row))
+        except Exception as exc:
+            print(f"⚠️ Discord success notification failed: {exc}")
+
+    def notify_failure(self, subject, sender, error):
+        try:
+            self.notifier.send(format_email_failure_notification(subject, sender, error))
+        except Exception as exc:
+            print(f"⚠️ Discord failure notification failed: {exc}")
+
+    def resolve_dedupe_dir(self, config):
+        configured = (config.get("EMAIL_DEDUPE_DIR") or "").strip()
+        if configured:
+            return configured
+
+        md_path = Path(config.get("MD_PATH") or "./todo.md").expanduser().resolve()
+        return md_path.parent / ".email_msg_dedupe"
