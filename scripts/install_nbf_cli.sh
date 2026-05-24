@@ -5,8 +5,20 @@ REPO_DIR="/root/NoBrainFog"
 VENV_PYTHON="$REPO_DIR/.venv/bin/python"
 CLI_SCRIPT="$REPO_DIR/tools/nbf_cli.py"
 DEFAULT_ENV_FILE="/root/nobrainfog-config/cli.env"
-INSTALL_DIR="$HOME/.local/bin"
-COMMAND_PATH="$INSTALL_DIR/nbf"
+GLOBAL_COMMAND_PATH="/usr/local/bin/nbf"
+USER_INSTALL_DIR="$HOME/.local/bin"
+USER_COMMAND_PATH="$USER_INSTALL_DIR/nbf"
+
+write_wrapper() {
+  local command_path="$1"
+
+  cat > "$command_path" <<EOF
+#!/usr/bin/env bash
+exec "$VENV_PYTHON" "$CLI_SCRIPT" --env-file "$DEFAULT_ENV_FILE" "\$@"
+EOF
+
+  chmod +x "$command_path"
+}
 
 if [ ! -d "$REPO_DIR" ]; then
   echo "❌ Repository directory not found: $REPO_DIR" >&2
@@ -34,27 +46,28 @@ if [ ! -f "$DEFAULT_ENV_FILE" ]; then
   exit 1
 fi
 
-mkdir -p "$INSTALL_DIR"
+if [ -w "$(dirname "$GLOBAL_COMMAND_PATH")" ]; then
+  write_wrapper "$GLOBAL_COMMAND_PATH"
+  echo "✅ Installed global NoBrainFog CLI command: $GLOBAL_COMMAND_PATH"
+  echo
+  "$GLOBAL_COMMAND_PATH" help
+  exit 0
+fi
 
-cat > "$COMMAND_PATH" <<EOF
-#!/usr/bin/env bash
-exec "$VENV_PYTHON" "$CLI_SCRIPT" --env-file "$DEFAULT_ENV_FILE" "\$@"
-EOF
-
-chmod +x "$COMMAND_PATH"
-
-echo "✅ Installed NoBrainFog CLI command: $COMMAND_PATH"
+mkdir -p "$USER_INSTALL_DIR"
+write_wrapper "$USER_COMMAND_PATH"
+echo "✅ Installed user NoBrainFog CLI command: $USER_COMMAND_PATH"
 
 case ":$PATH:" in
-  *":$INSTALL_DIR:"*)
-    echo "✅ $INSTALL_DIR is already in PATH"
+  *":$USER_INSTALL_DIR:"*)
+    echo "✅ $USER_INSTALL_DIR is already in PATH"
     ;;
   *)
-    echo "⚠️  $INSTALL_DIR is not currently in PATH."
+    echo "⚠️  $USER_INSTALL_DIR is not currently in PATH."
     echo "Add this to ~/.bashrc if needed:"
-    echo "  export PATH=\"$INSTALL_DIR:\$PATH\""
+    echo "  export PATH=\"$USER_INSTALL_DIR:\$PATH\""
     ;;
 esac
 
 echo
-"$COMMAND_PATH" help
+"$USER_COMMAND_PATH" help
