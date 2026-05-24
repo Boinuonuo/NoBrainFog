@@ -1,5 +1,9 @@
+import os
+import tempfile
+
 import discord
 
+from core.excel_exporter import export_tasks_to_excel
 from core.help_text import DISCORD_HELP_EMBED, DISCORD_HELP_TEXT
 from core.ingest import IngestService
 
@@ -45,6 +49,10 @@ class NoBrainFogBot(discord.Client):
                 content="Here is your NoBrainFog todo.md:",
                 file=discord.File(self.handler.file_path, filename="todo.md"),
             )
+            return
+
+        if command in ["/excel", "/xlsx"]:
+            await self._handle_excel_export(message)
             return
 
         if command == "/import":
@@ -147,6 +155,34 @@ class NoBrainFogBot(discord.Client):
         except Exception as e:
             print(f"⚠️ Failed to send Discord help embed, falling back to text: {e}")
             await message.channel.send(DISCORD_HELP_TEXT)
+
+    async def _handle_excel_export(self, message):
+        temp_path = None
+
+        try:
+            await message.add_reaction("📊")
+            self.handler._initialize_storage()
+            tasks = self.handler.get_tasks()
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as temp_file:
+                temp_path = temp_file.name
+
+            export_tasks_to_excel(tasks, temp_path)
+
+            await message.channel.send(
+                content=f"Here is your NoBrainFog Excel export. Tasks: {len(tasks)}",
+                file=discord.File(temp_path, filename="nobrainfog-todo.xlsx"),
+            )
+            await message.add_reaction("✨")
+        except Exception as e:
+            print(f"❌ Excel export error: {e}")
+            await message.channel.send(f"Excel export failed: {e}")
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except OSError as cleanup_error:
+                    print(f"⚠️ Failed to remove temporary Excel file: {cleanup_error}")
 
     async def _handle_import(self, message):
         if not message.attachments:
