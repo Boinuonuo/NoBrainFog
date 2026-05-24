@@ -4,11 +4,14 @@ import hashlib
 import struct
 import time
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import requests
 from Crypto.Cipher import AES
 from flask import Flask, jsonify, request
 
+from core.help_text import WECHAT_HELP_TEXT
+from core.idempotency import MessageDeduper
 from core.ingest import IngestService
 
 
@@ -36,8 +39,17 @@ class WeChatWorkBot:
         self.access_token = None
         self.token_expires = 0
         self.authorized_users = set(config.get("AUTHORIZED_USERS", []))
+        self.deduper = MessageDeduper(self._dedupe_store_dir(config))
 
         self._setup_routes()
+
+    def _dedupe_store_dir(self, config):
+        configured = config.get("WECHAT_DEDUPE_DIR")
+        if configured:
+            return configured
+
+        md_path = Path(config.get("MD_PATH", "./todo.md")).expanduser().resolve()
+        return md_path.parent / ".wechat_msg_dedupe"
 
     def _build_aes_key(self, encoding_aes_key):
         if not encoding_aes_key:
@@ -132,8 +144,6 @@ class WeChatWorkBot:
                 "Invalid AES key length. Check WECHAT_ENCODING_AES_KEY."
             )
 
-        # WeChat Work encrypted payload format:
-        # 16 random bytes + 4 bytes xml length + xml + corp_id + PKCS#7 padding
         random_bytes = b"NoBrainFogRndStr"
         xml_bytes = plaintext_xml.encode("utf-8")
         corp_bytes = (self.corp_id or "").encode("utf-8")
@@ -199,6 +209,9 @@ class WeChatWorkBot:
         @self.app.route("/wechat", methods=["POST"])
         def handle_message():
             """企业微信消息回调。"""
+            message_key = None
+            claimed = False
+
             try:
                 signature = request.args.get("msg_signature", "")
                 timestamp = request.args.get("timestamp", "")
@@ -220,6 +233,12 @@ class WeChatWorkBot:
                 to_user = root.findtext("ToUserName", "")
                 from_user = root.findtext("FromUserName", "")
                 msg_type = root.findtext("MsgType", "")
+                message_key = self._message_key(root, from_user, msg_type)
+
+                if not self.deduper.claim(message_key):
+                    print(f"🔁 企业微信重复消息已跳过: {message_key}")
+                    return "success"
+                claimed = True
 
                 if self.authorized_users and from_user not in self.authorized_users:
                     print(f"❌ 未授权用户: {from_user}")
@@ -227,11 +246,9 @@ class WeChatWorkBot:
                 else:
                     reply = self._dispatch_message(root, msg_type, from_user)
 
-                # 推荐路径：主动发消息，企业微信客户端更稳定可见。
                 if self._send_active_reply(from_user, reply):
                     return "success"
 
-                # Fallback：如果主动发送失败，则尝试加密被动回复。
                 passive_xml = self._make_plain_response_xml(
                     to_user=from_user,
                     from_user=to_user or self.corp_id,
@@ -240,8 +257,22 @@ class WeChatWorkBot:
                 return self._make_encrypted_response_xml(passive_xml, timestamp, nonce)
 
             except Exception as e:
+                if claimed:
+                    self.deduper.release(message_key)
                 print(f"❌ 处理消息异常: {e}")
                 return jsonify({"status": "error", "message": str(e)}), 500
+
+    def _message_key(self, root, from_user, msg_type):
+        msg_id = root.findtext("MsgId", "")
+        create_time = root.findtext("CreateTime", "")
+        content = root.findtext("Content", "")
+
+        if msg_id:
+            return f"wechat_{msg_id}"
+
+        raw = f"{from_user}|{msg_type}|{create_time}|{content}"
+        digest = hashlib.sha1(raw.encode("utf-8")).hexdigest()
+        return f"wechat_fallback_{digest}"
 
     def _dispatch_message(self, root, msg_type, user_id):
         if msg_type == "text":
@@ -285,7 +316,7 @@ class WeChatWorkBot:
             )
 
         if cmd in ["/help", "/h", "/admhelp"]:
-            return self._wechat_help_text()
+            return WECHAT_HELP_TEXT
 
         if cmd.startswith("/done"):
             selector = raw_command[len("/done"):].strip()
@@ -470,40 +501,6 @@ class WeChatWorkBot:
             return self._limit_message(fn())
         except Exception as e:
             return f"❌ {label}失败: {str(e)}"
-
-    def _wechat_help_text(self):
-        return """
-🧠 NoBrainFog 企业微信机器人帮助
-
-基础：
-/report 或 /r：查看任务列表
-/export 或 /e：导出 todo.md 文本
-/undo：撤回最后一条任务
-/help 或 /h：显示帮助
-
-新增任务：
-直接发送文字，我会整理成 Markdown todo。
-
-管理：
-/done 2：标记 #2 完成
-/done 关键词：按关键词完成任务
-/edit 2 新内容：修改任务描述
-/pri 2 P1：修改优先级
-/due 2 2026-05-30：修改截止日期
-/due 2 none：清空截止日期
-/memo 2 备注：修改备注
-/memo 2 none：清空备注
-
-分析：
-/prior：生成优先级建议
-/cbt 2：拆解单个任务
-/cbt all：分析全部任务
-/yesucan：生成鼓励/推进消息
-
-暂不支持：
-/import：请继续用 Discord 上传 todo.md
-语音转写：暂未接入
-""".strip()
 
     def _limit_message(self, content, suffix="\n\n...内容太长，已截断。"):
         content = content or ""
