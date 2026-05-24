@@ -3,6 +3,7 @@
 NoBrainFog command-line toolkit.
 
 Examples:
+    python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env help
     python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env report
     python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env add "Check the insurance bill"
     python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env excel --output /tmp/todo.xlsx
@@ -25,6 +26,83 @@ if str(PROJECT_ROOT) not in sys.path:
 from core.excel_exporter import export_tasks_to_excel
 from core.handler import TodoHandler
 from core.ingest import IngestService
+
+CLI_HELP_TEXT = """
+🧠 NoBrainFog CLI Toolkit
+
+Purpose:
+  Local command-line access to the same todo.md used by Discord and WeChat Work.
+  Good for server shell, cron jobs, quick maintenance, and one-off exports.
+
+Base command:
+  python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env <command>
+
+Config:
+  Required for all commands:
+    MD_PATH=/root/nbf-vault/todo.md
+
+  Required only for AI commands:
+    AI_DRIVER=openai or gemini
+    API_KEY=...              # openai-compatible driver
+    GEMINI_API_KEY=...       # gemini driver
+
+Capture:
+  add "task text"
+    Capture a new task through the AI pipeline.
+    Requires AI credentials.
+
+    Example:
+      python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env add "Check the insurance bill"
+
+View:
+  report
+    Print the current NoBrainFog task report.
+
+    Example:
+      python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env report
+
+Edit:
+  done <number-or-keyword>
+    Mark a task as done.
+
+  edit <number-or-keyword> "new task text"
+    Edit the task description.
+
+  undo
+    Remove the last task row.
+
+Metadata:
+  pri <number-or-keyword> P0|P1|P2|P3
+    Update priority.
+
+  due <number-or-keyword> YYYY-MM-DD
+    Update deadline.
+
+  due <number-or-keyword> none
+    Clear deadline.
+
+  memo <number-or-keyword> "memo text"
+    Update memo.
+
+  memo <number-or-keyword> none
+    Clear memo.
+
+Export & Check:
+  excel --output /tmp/nobrainfog-todo.xlsx
+    Export todo.md to a formatted Excel workbook.
+
+  lint
+    Compile and run the optional C todo.md table linter.
+    Requires gcc.
+
+Examples:
+  python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env report
+  python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env done 2
+  python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env pri 2 P0
+  python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env due 2 2026-05-30
+  python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env excel --output /tmp/todo.xlsx
+  python tools/nbf_cli.py --env-file /root/nobrainfog-config/cli.env lint
+""".strip()
 
 
 def load_env_file(env_file):
@@ -83,6 +161,11 @@ def get_handler(config):
 
 def join_words(words):
     return " ".join(words).strip()
+
+
+def command_help(args, config):
+    print(CLI_HELP_TEXT)
+    return 0
 
 
 def command_add(args, config):
@@ -203,6 +286,9 @@ def build_parser():
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    help_parser = subparsers.add_parser("help", help="Show the NoBrainFog CLI toolkit manual.")
+    help_parser.set_defaults(func=command_help)
+
     add_parser = subparsers.add_parser("add", help="Capture a new task through the AI pipeline.")
     add_parser.add_argument("text", nargs="+", help="Task text to capture.")
     add_parser.set_defaults(func=command_add)
@@ -254,7 +340,7 @@ def main():
     try:
         env_path = load_env_file(args.env_file)
         config = build_config()
-        if args.command != "report":
+        if args.command not in {"report", "help"}:
             print(f"✅ Loaded env file: {env_path}")
         return args.func(args, config)
     except Exception as exc:
