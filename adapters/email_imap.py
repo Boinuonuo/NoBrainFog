@@ -21,6 +21,7 @@ class EmailIMAPAdapter:
     Flow:
     - search unread emails
     - parse subject/from/body
+    - skip non-whitelisted senders when a whitelist is configured
     - skip messages already recorded in the local dedupe store
     - send clean text into IngestService
     - notify Discord when configured
@@ -36,11 +37,13 @@ class EmailIMAPAdapter:
         self.host = config.get("EMAIL_IMAP_HOST")
         self.port = int(config.get("EMAIL_IMAP_PORT") or 993)
         self.username = config.get("EMAIL_USERNAME")
-        self.password = config.get("EMAIL_PASSWORD")
+        self.password = self.normalize_password(config.get("EMAIL_PASSWORD"))
         self.mailbox = config.get("EMAIL_MAILBOX") or "INBOX"
         self.poll_seconds = int(config.get("EMAIL_POLL_SECONDS") or 60)
         self.processed_folder = (config.get("EMAIL_PROCESSED_FOLDER") or "").strip()
         self.max_messages_per_poll = int(config.get("EMAIL_MAX_MESSAGES_PER_POLL") or 10)
+        self.allowed_senders = self.parse_csv_config(config.get("EMAIL_ALLOWED_SENDERS"))
+        self.allowed_domains = self.parse_domain_config(config.get("EMAIL_ALLOWED_DOMAINS"))
         self.dedupe = EmailDedupeStore(self.resolve_dedupe_dir(config))
 
     def run(self):
@@ -48,6 +51,10 @@ class EmailIMAPAdapter:
         print(f"Mailbox: {self.username} / {self.mailbox}")
         print(f"Poll interval: {self.poll_seconds}s")
         print(f"Discord notification: {'enabled' if self.notifier.enabled else 'disabled'}")
+        if self.has_sender_whitelist():
+            print("Sender whitelist: enabled")
+        else:
+            print("Sender whitelist: disabled; all senders are allowed")
 
         while True:
             try:
@@ -111,8 +118,15 @@ class EmailIMAPAdapter:
         parsed = parse_email_bytes(raw_message)
 
         sender_name, sender_email = parseaddr(parsed.sender)
+        normalized_sender = (sender_email or parsed.sender or "").strip().lower()
         display_sender = sender_email or sender_name or parsed.sender or "unknown sender"
         display_subject = parsed.subject or "(no subject)"
+
+        if not self.is_sender_allowed(normalized_sender):
+            print(f"🚫 Ignoring non-whitelisted email: {display_subject} <{display_sender}>")
+            mail.store(message_id, "+FLAGS", "\\Seen")
+            return False
+
         message_uid = self.fetch_uid(mail, message_id)
         dedupe_key = self.dedupe.make_key(
             message_id=parsed.message_id,
@@ -207,3 +221,42 @@ class EmailIMAPAdapter:
 
         md_path = Path(config.get("MD_PATH") or "./todo.md").expanduser().resolve()
         return md_path.parent / ".email_msg_dedupe"
+
+    def has_sender_whitelist(self):
+        return bool(self.allowed_senders or self.allowed_domains)
+
+    def is_sender_allowed(self, sender_email):
+        if not self.has_sender_whitelist():
+            return True
+
+        sender = (sender_email or "").strip().lower()
+        if not sender:
+            return False
+
+        if sender in self.allowed_senders:
+            return True
+
+        if "@" in sender:
+            domain = sender.rsplit("@", 1)[1]
+            if domain in self.allowed_domains:
+                return True
+
+        return False
+
+    def parse_csv_config(self, value):
+        return {
+            item.strip().lower()
+            for item in str(value or "").split(",")
+            if item.strip()
+        }
+
+    def parse_domain_config(self, value):
+        return {
+            item.strip().lower().lstrip("@")
+            for item in str(value or "").split(",")
+            if item.strip()
+        }
+
+    def normalize_password(self, password):
+        """Google App Passwords are often displayed with spaces for readability."""
+        return "".join(str(password or "").split())
